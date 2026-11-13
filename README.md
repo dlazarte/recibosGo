@@ -1,12 +1,13 @@
 # RecibosGo - Sistema de Gestión de Expensas
 
-Sistema web para administrar expensas y servicios de edificios. Diseñado para 150 clientes y 5 administradores.
+Sistema web para administrar expensas y servicios de edificios de departamentos. Diseñado para 150 clientes y 5 administradores/operadores.
 
 ## 🚀 Características
 
 - Gestión de departamentos, propietarios e inquilinos
 - Administración de servicios (expensas comunes, extraordinarias)
 - Generación de recibos con vista previa y PDF
+- Deuda mensual por coeficiente (expensas + SAT/CISI) y consulta por unidad o persona
 - Roles diferenciados: Administrador, Propietario, Inquilino, Operador
 - Dashboard con métricas clave
 - Modo oscuro/claro
@@ -18,10 +19,10 @@ La documentación técnica completa (arquitectura, modelo de datos, mapa de pant
 
 ## 🛠️ Stack Tecnológico
 
-- **Backend**: Go 1.22+
+- **Backend**: Go 1.26+
 - **Router**: Chi (`github.com/go-chi/chi/v5`)
 - **ORM**: GORM
-- **Base de Datos**: PostgreSQL ( desarrollo y producción)
+- **Base de Datos**: PostgreSQL 14+ (desarrollo y producción)
 - **Frontend**: `html/template` + HTMX + TailwindCSS
 - **PDF**: `github.com/go-pdf/fpdf`
 - **Autenticación**: bcrypt + cookies de sesión
@@ -30,67 +31,123 @@ La documentación técnica completa (arquitectura, modelo de datos, mapa de pant
 
 ### Requisitos Previos
 
-- Go 1.22 o superior
+- Go 1.26 o superior
+- PostgreSQL 14 o superior
 - Git
 
-### Pasos
+### 1. Clonar el repositorio
 
-1. Clonar el repositorio:
 ```bash
-git clone <url-del-repositorio>
-cd recibosgo
+git clone https://github.com/dlazarte/recibosGo.git
+cd recibosGo
+```
 
-# Puerto (default: 8090)
+### 2. Crear la base de datos PostgreSQL
+
+Con un PostgreSQL local:
+
+```bash
+sudo -u postgres psql -c "CREATE USER recibosgo WITH PASSWORD 'recibosgo';"
+sudo -u postgres psql -c "CREATE DATABASE recibosgo OWNER recibosgo;"
+```
+
+O con Docker:
+
+```bash
+docker run -d --name recibosgo-db \
+  -e POSTGRES_USER=recibosgo \
+  -e POSTGRES_PASSWORD=recibosgo \
+  -e POSTGRES_DB=recibosgo \
+  -p 5432:5432 postgres:16
+```
+
+### 3. Configurar variables de entorno
+
+```bash
+export DATABASE_URL="postgres://recibosgo:recibosgo@localhost:5432/recibosgo?sslmode=disable"
 export PORT=8090
-# Para producción con PostgreSQL
-export DATABASE_URL="postgres://user:pass@localhost/dbname"
+export SESSION_SECRET="cambiar-en-produccion"
+export ADMIN_EMAIL="admin@recibosgo.local"
+export ADMIN_PASSWORD="admin123"
+```
 
-🏗️ Estructura del Proyecto
+| Variable | Obligatoria | Default | Descripción |
+|---|---|---|---|
+| `DATABASE_URL` | sí | — | Cadena de conexión PostgreSQL (`postgres://usuario:clave@host:5432/base?sslmode=disable`) |
+| `PORT` | no | `8090` | Puerto HTTP |
+| `SESSION_SECRET` | no | `dev-secret-cambiar-en-produccion` | Firma HMAC de la cookie de sesión |
+| `ADMIN_EMAIL` | no | `admin@recibosgo.local` | Email del usuario administrador inicial |
+| `ADMIN_PASSWORD` | no | `admin123` | Contraseña del administrador inicial |
+| `CSV_PATH` | no | `dptos_dueños_inquilinos.csv` | CSV usado por el backfill v2.1 |
+
+> `DATABASE_URL` debe ser una URL de PostgreSQL. La aplicación crea y actualiza el esquema automáticamente al iniciar (AutoMigrate + migración aditiva v2.1); no hay paso manual de migración.
+
+### 4. Ejecutar
+
+```bash
+go run ./cmd/server
+```
+
+Abrir [http://localhost:8090](http://localhost:8090) e iniciar sesión con `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+
+### 5. Tests
+
+```bash
+go test ./...
+```
+
+## 🏗️ Estructura del Proyecto
+
+```
 recibosgo/
 ├── cmd/
-│   └── server/
-│       └── main.go              # Punto de entrada
+│   ├── server/              # Punto de entrada HTTP
+│   └── verify/              # Verificación de datos
 ├── internal/
-│   ├── config/                  # Configuración (env vars)
-│   ├── database/                # Conexión y migraciones
-│   ├── models/                  # Modelos GORM
-│   ├── handlers/                # Handlers HTTP
-│   ├── middleware/              # Auth y roles
-│   └── pdf/                     # Generación de PDFs
-├── templates/                   # Templates HTML
-├── static/                      # CSS, imágenes, logos
-│   ├── css/
-│   ├── images/
-│   └── js/
+│   ├── config/              # Configuración por variables de entorno
+│   ├── database/            # Conexión PostgreSQL y migraciones
+│   ├── handlers/            # Handlers HTTP (Chi)
+│   ├── middleware/          # Autenticación y roles
+│   ├── models/              # Modelos GORM
+│   ├── parser/              # Parser de CSV/planillas
+│   └── pdf/                 # Generación de PDFs
+├── templates/               # Templates html/template
+│   └── fragments/           # Fragmentos HTMX
+├── static/                  # Imágenes y vendor (HTMX)
+├── docs/                    # Arquitectura, modelo, pantallas, migraciones
+├── data/                    # CSVs y scripts de importación
 ├── go.mod
 ├── go.sum
 ├── README.md
 └── AGENTS.md
+```
 
-👥 Roles y Permisos
-Rol	Descripción	Acceso
-Administrador	Gestión completa	Todo
-Propietario	Dueño de departamentos	Sus deptos, recibos y deudas
-Inquilino	Ocupante de unidad	Su unidad, recibos y deudas
-Operador	Genera recibos y consultas	Generación, consultas, reportes
+## 👥 Roles y Permisos
 
-🎨 Diseño
-Colores: Azul corporativo (#1a56db) con acentos
+| Rol | Descripción | Acceso |
+|---|---|---|
+| Administrador | Gestión completa | Todo |
+| Propietario | Dueño de departamentos | Sus deptos, recibos y deudas |
+| Inquilino | Ocupante de unidad | Su unidad, recibos y deudas |
+| Operador | Genera recibos y consultas | Generación, consultas, reportes |
 
-Modo oscuro: Soporte nativo
+## 🎨 Diseño
 
-Responsive: TailwindCSS con breakpoints (sm/md/lg/xl)
+- Colores: azul corporativo (#1a56db) con acentos.
+- Modo oscuro: soporte nativo.
+- Responsive: TailwindCSS con breakpoints (sm/md/lg/xl).
+- Menú móvil: hamburguesa ☰ sin animación.
 
-Menú móvil: Hamburguesa ☰ sin animación
+## 📋 Tareas Sugeridas (Orden de Implementación)
 
-Tareas Sugeridas (Orden de Implementación)
-✅ Setup inicial: Estructura, configuración, conexión a DB
-✅ Modelos: User, Departamento, Servicio, Recibo, Fecha
-✅ Autenticación: Login, logout, middleware, roles
-✅ Dashboard: Métricas por rol
-✅ Departamentos: CRUD + listado con filtros
-✅ Servicios: CRUD + listado
-✅ Recibos: Flujo 3 pasos (seleccionar → agregar → confirmar)
-✅ PDF: Generación y descarga
-✅ Reportes: Básicos por período
-✅ UI/UX: Menú responsive, modo oscuro, estilos finales
+- ✅ Setup inicial: estructura, configuración, conexión a DB
+- ✅ Modelos: User, Departamento, Servicio, Recibo, Fecha
+- ✅ Autenticación: login, logout, middleware, roles
+- ✅ Dashboard: métricas por rol
+- ✅ Departamentos: CRUD + listado con filtros
+- ✅ Servicios: CRUD + listado
+- ✅ Recibos: flujo de generación
+- ✅ PDF: generación y descarga
+- ✅ Reportes: básicos por período
+- ✅ UI/UX: menú responsive, modo oscuro, estilos finales
+- ✅ Deudas: generación mensual por coeficiente y consulta por unidad/persona
