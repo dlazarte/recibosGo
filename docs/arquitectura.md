@@ -4,11 +4,10 @@
 
 | Capa | Tecnología |
 |---|---|
-| Lenguaje | Go 1.22+ (`go.mod` declara `go 1.26.5`) |
+| Lenguaje | Go 1.26+ (`go.mod` declara `go 1.26.5`) |
 | Router | `github.com/go-chi/chi/v5` |
 | ORM | `gorm.io/gorm` |
-| DB desarrollo | SQLite puro (`github.com/glebarez/sqlite`) |
-| DB producción | PostgreSQL (`github.com/jackc/pgx/v5/stdlib` + `gorm.io/driver/postgres`) |
+| DB | PostgreSQL 14+ (`github.com/jackc/pgx/v5/stdlib` + `gorm.io/driver/postgres`) |
 | Auth | `bcrypt` + cookies de sesión con firma HMAC |
 | Frontend | `html/template` estándar + HTMX (`static/vendor/htmx.min.js`) |
 | PDF | `github.com/go-pdf/fpdf` |
@@ -34,6 +33,7 @@ recibosgo/
 │   │   ├── recibos.go          # Listado, creación, detalle, pago, item-row
 │   │   ├── recibos_pdf.go
 │   │   ├── reportes.go
+│   │   ├── deudas.go           # Generación mensual y consulta de deudas
 │   │   ├── funcs.go            # helpers de template (fmtMoney, fmtFecha, trimNumero, mul)
 │   │   └── paginado.go         # Paginación (perPage = 25)
 │   ├── middleware/middleware.go # Autenticación, sesión, RequireRole
@@ -45,7 +45,6 @@ recibosgo/
 ├── static/                     # style.css, htmx.min.js, imágenes
 ├── recibos2026.sql             # Dump legacy (fuente de migración)
 ├── dptos_dueños_inquilinos.csv # CSV limpio para backfill
-├── mp135.db / recibos.db       # Bases SQLite de desarrollo
 ```
 
 ## Flujo de una request
@@ -70,13 +69,13 @@ recibosgo/
 | Variable | Default | Uso |
 |---|---|---|
 | `PORT` | `8090` | Puerto HTTP |
-| `DATABASE_URL` | `recibos.db` | Ruta SQLite o DSN Postgres |
+| `DATABASE_URL` | `postgres://recibosgo:recibosgo@localhost:5432/recibosgo?sslmode=disable` | DSN PostgreSQL |
 | `SESSION_SECRET` | `dev-secret-...` | Firma HMAC de la cookie |
 | `ADMIN_EMAIL` | `admin@recibosgo.local` | Seed del admin |
 | `ADMIN_PASSWORD` | `admin123` | Seed del admin |
 | `CSV_PATH` | `dptos_dueños_inquilinos.csv` | CSV para backfill v2.1 |
 
-> En `database.Connect`, SQLite se usa SOLO si `DATABASE_URL == "recibos.db"`; cualquier otro valor se trata como DSN de Postgres.
+> `DATABASE_URL` debe ser un DSN de PostgreSQL; la app no usa SQLite.
 
 ### Sesión y roles
 
@@ -98,7 +97,7 @@ El login sigue usando `users.email` para autenticación. Para encontrar los depa
 
 - ✅ Templates en `templates/`, nunca HTML dentro de handlers.
 - ✅ GORM para todo acceso a datos (nada de SQL crudo).
-- ✅ SQLite + Postgres: usar GORM Migrator / AutoMigrate, sin dialectos específicos.
+- ✅ PostgreSQL: usar GORM Migrator / AutoMigrate, sin dialectos específicos.
 - ✅ Contraseñas con bcrypt.
 - ✅ Importar drivers de DB solo en `internal/database`.
 - ❌ NO renombrar tablas/columnas del esquema de `mp135.db` (respetar nombres 1:1).

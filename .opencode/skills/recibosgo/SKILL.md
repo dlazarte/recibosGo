@@ -8,7 +8,7 @@ description: Use when working on the RecibosGo codebase (sistema de expensas, Go
 
 # RecibosGo — Skill de desarrollo
 
-Contexto y reglas para modificar el sistema de gestión de expensas RecibosGo (Go 1.22+, Chi, GORM, html/template + HTMX, SQLite dev / Postgres prod).
+Contexto y reglas para modificar el sistema de gestión de expensas RecibosGo (Go 1.26+, Chi, GORM, html/template + HTMX, PostgreSQL).
 
 ## Regla de oro
 

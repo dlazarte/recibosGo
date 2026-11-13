@@ -55,11 +55,15 @@ O con Docker:
 
 ```bash
 docker run -d --name recibosgo-db \
+  --restart unless-stopped \
   -e POSTGRES_USER=recibosgo \
   -e POSTGRES_PASSWORD=recibosgo \
   -e POSTGRES_DB=recibosgo \
-  -p 5432:5432 postgres:16
+  -v recibosgo-pgdata:/var/lib/postgresql/data \
+  -p 5432:5432 postgres:14
 ```
+
+Si el contenedor ya existe, alcanza con `docker start recibosgo-db`.
 
 ### 3. Configurar variables de entorno
 
@@ -73,7 +77,7 @@ export ADMIN_PASSWORD="admin123"
 
 | Variable | Obligatoria | Default | Descripción |
 |---|---|---|---|
-| `DATABASE_URL` | sí | — | Cadena de conexión PostgreSQL (`postgres://usuario:clave@host:5432/base?sslmode=disable`) |
+| `DATABASE_URL` | no | `postgres://recibosgo:recibosgo@localhost:5432/recibosgo?sslmode=disable` | Cadena de conexión PostgreSQL (`postgres://usuario:clave@host:5432/base?sslmode=disable`) |
 | `PORT` | no | `8090` | Puerto HTTP |
 | `SESSION_SECRET` | no | `dev-secret-cambiar-en-produccion` | Firma HMAC de la cookie de sesión |
 | `ADMIN_EMAIL` | no | `admin@recibosgo.local` | Email del usuario administrador inicial |

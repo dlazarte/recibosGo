@@ -16,7 +16,7 @@ type Config struct {
 func Load() Config {
 	return Config{
 		Port:          getEnv("PORT", "8090"),
-		DatabaseURL:   getEnv("DATABASE_URL", "recibos.db"),
+		DatabaseURL:   getEnv("DATABASE_URL", "postgres://recibosgo:recibosgo@localhost:5432/recibosgo?sslmode=disable"),
 		SessionSecret: getEnv("SESSION_SECRET", "dev-secret-cambiar-en-produccion"),
 		AdminEmail:    getEnv("ADMIN_EMAIL", "admin@recibosgo.local"),
 		AdminPassword: getEnv("ADMIN_PASSWORD", "admin123"),

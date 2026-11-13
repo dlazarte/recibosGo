@@ -15,13 +15,13 @@ Sistema web para gestionar expensas y servicios de edificios de departamentos.
 
 ### Stack Tecnológico
 Backend:
-  - Lenguaje: Go 1.22+
+  - Lenguaje: Go 1.26+
   - Router: github.com/go-chi/chi/v5
   - ORM: GORM (gorm.io/gorm)
   - Auth: bcrypt (golang.org/x/crypto/bcrypt) + cookies de sesión
 Base de Datos:
-  - Desarrollo: SQLite (github.com/glebarez/sqlite) - puro Go, sin CGO
-  - Producción: PostgreSQL/Supabase (github.com/jackc/pgx/v5/stdlib)
+  - PostgreSQL 14+ (desarrollo y producción) vía DATABASE_URL
+  - Driver: github.com/jackc/pgx/v5/stdlib + gorm.io/driver/postgres
   - Migraciones: AutoMigrate de GORM + migración aditiva v2.1
 
 Frontend:
@@ -37,7 +37,7 @@ PDF:
 NO hacer:
 	❌ Escribir HTML dentro de los handlers → usar templates en templates/
 	❌ SQL crudo a mano → usar GORM (db.Where, db.First, etc.)
-	❌ Usar MySQL/Oracle/otro dialecto → soportar SQLite y Postgres
+	❌ Usar MySQL/Oracle/otro dialecto → solo PostgreSQL
 	❌ Guardar contraseñas en texto plano → siempre bcrypt
 	❌ Importar drivers de DB en capas de negocio → solo en internal/database
 	❌ Renombrar tablas/columnas del esquema de mp135.db → respetar nombres 1:1

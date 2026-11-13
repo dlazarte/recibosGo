@@ -27,6 +27,7 @@ Estos documentos sirven a dos audiencias:
 | [pantallas/recibos-listado.md](./pantallas/recibos-listado.md) | Listado/filtrado de recibos |
 | [pantallas/recibo-detalle.md](./pantallas/recibo-detalle.md) | Detalle y pago de recibo |
 | [pantallas/reportes.md](./pantallas/reportes.md) | Reportes por período |
+| [pantallas/deudas.md](./pantallas/deudas.md) | Deudas: generación mensual y consulta por unidad/persona |
 
 ## Convenciones de lectura
 
@@ -38,5 +39,5 @@ Estos documentos sirven a dos audiencias:
 
 ## Estado del proyecto
 
-- **v2.0**: sistema funcional actual (1 recibo = 1 unidad, sin tabla de titulares).
-- **v2.1 (planificado)**: campo `nombre` de unidad, tablas `persona` + `departamento_persona`, generación de varios recibos por titular en un paso. Ver [migraciones.md](./migraciones.md).
+- **v2.1 (implementado)**: unidad con `nombre`, `persona` + FKs directas, `coeficiente` por unidad, `recibo.periodo`, generación multi-unidad y deuda mensual.
+- **v2.2 (en curso)**: PostgreSQL como única base, adaptación de las planillas (`ExpensasMP2026.xlsx`) al modelo, pantallas y procesos restantes.

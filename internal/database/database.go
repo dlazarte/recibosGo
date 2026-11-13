@@ -8,7 +8,6 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/glebarez/sqlite"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 	"gorm.io/driver/postgres"
@@ -18,18 +17,13 @@ import (
 )
 
 func Connect(cfg config.Config) (*gorm.DB, error) {
-	var dialector gorm.Dialector
-	if cfg.DatabaseURL == "recibos.db" {
-		dialector = sqlite.Open(cfg.DatabaseURL)
-	} else {
-		connConfig, err := pgx.ParseConfig(cfg.DatabaseURL)
-		if err != nil {
-			return nil, err
-		}
-		connector := stdlib.GetConnector(*connConfig)
-		sqlDB := sql.OpenDB(connector)
-		dialector = postgres.New(postgres.Config{Conn: sqlDB})
+	connConfig, err := pgx.ParseConfig(cfg.DatabaseURL)
+	if err != nil {
+		return nil, err
 	}
+	connector := stdlib.GetConnector(*connConfig)
+	sqlDB := sql.OpenDB(connector)
+	dialector := postgres.New(postgres.Config{Conn: sqlDB})
 
 	db, err := gorm.Open(dialector, &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Warn),
