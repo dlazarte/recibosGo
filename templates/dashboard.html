@@ -1,0 +1,86 @@
+{{define "title"}}Dashboard - RecibosGo{{end}}
+{{define "content"}}
+{{$d := .Data}}
+<div class="page">
+  <div class="row-between">
+    <div>
+      <h1>Dashboard</h1>
+      <p class="subtitle">Bienvenido, {{.User.Email}}</p>
+    </div>
+  </div>
+
+  {{if or .IsAdmin .IsReceptor}}
+  <div class="cards">
+    <div class="card stat">
+      <span class="num">{{$d.DeptCount}}</span>
+      <span class="label">Departamentos</span>
+    </div>
+    <div class="card stat">
+      <span class="num">{{$d.ServCount}}</span>
+      <span class="label">Servicios</span>
+    </div>
+    <div class="card stat">
+      <span class="num">{{$d.RecibosCount}}</span>
+      <span class="label">Recibos totales</span>
+    </div>
+    <div class="card stat ok-card">
+      <span class="num">{{$d.RecibosCount}}</span>
+      <span class="label">Recibos del mes</span>
+    </div>
+    <div class="card stat warn-card">
+      <span class="num">$ 0.00</span>
+      <span class="label">Deuda pendiente</span>
+    </div>
+  </div>
+  {{else}}
+    {{if $d.Departamentos}}
+    <div class="cards">
+      {{range $d.Departamentos}}
+      <div class="card stat">
+        <span class="num">{{.Nombre}}</span>
+        <span class="label">{{if .Dueño}}{{.Dueño.Nombre}}{{else}}Sin asignar{{end}}</span>
+      </div>
+      {{end}}
+    </div>
+    {{else}}
+    <p class="notice">Tu cuenta no tiene departamentos asociados (el email debe coincidir con el del departamento).</p>
+    {{end}}
+  {{end}}
+
+  <h2>Últimos recibos</h2>
+  {{if $d.Recibos}}
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Nº</th>
+        <th>Fecha</th>
+        <th>Unidad</th>
+        <th>Propietario</th>
+        <th>Total</th>
+        <th>Estado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range $d.Recibos}}
+      <tr>
+        <td>{{.NumeroRecibo}}</td>
+        <td>{{fmtFechaD .Fecha}}</td>
+        <td>{{trimNumero .Departamento.Numero}}</td>
+        <td>{{.Departamento.Propietario}}</td>
+        <td>$ {{fmtMoney .Total}}</td>
+        <td>{{if .Pagado}}<span class="badge ok">Pagado</span>{{else}}<span class="badge warn">Pendiente</span>{{end}}</td>
+        <td><a href="/recibos/{{.ID}}" class="btn ghost sm">Ver</a></td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{else}}
+  <div class="card" style="text-align:center; padding:2rem;">
+    <p class="notice">No hay recibos todavía.</p>
+  </div>
+  {{end}}
+</div>
+{{end}}

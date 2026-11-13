@@ -1,0 +1,13 @@
+{{define "item_row"}}
+{{$d := .}}
+<div class="item-row">
+  <select name="id_servicio">
+    <option value="0" data-precio="0.00">Seleccionar servicio...</option>
+    {{range $d.Servicios}}<option value="{{.ID}}" data-precio="{{printf "%.2f" .PrecioUnitario}}"{{if contains .Nombre "Extraordinarias"}} data-tipo="extraordinaria"{{end}}>{{.Nombre}}</option>{{end}}
+  </select>
+  <input type="number" name="cantidad" value="1" min="1">
+  <input type="number" name="precio" step="0.01" value="0.00">
+  <input type="text" name="descripcion" placeholder="Opcional">
+  <button type="button" class="btn sm danger" onclick="this.closest('.item-row').remove(); aplicarPersona()">✕</button>
+</div>
+{{end}}

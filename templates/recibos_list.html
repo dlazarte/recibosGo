@@ -1,0 +1,33 @@
+{{define "title"}}Recibos - RecibosGo{{end}}
+{{define "content"}}
+{{$d := .Data}}
+<div class="page">
+  <div class="row-between">
+    <h1>Recibos</h1>
+    {{if or .IsAdmin .IsReceptor}}<a class="btn" href="/recibos/new">Nuevo recibo</a>{{end}}
+  </div>
+  {{if $d.Msg}}<p class="msg-ok">{{$d.Msg}}</p>{{end}}
+
+  <form method="get" action="/recibos" class="search"
+        hx-get="/recibos"
+        hx-target="#recibos-table"
+        hx-swap="outerHTML"
+        hx-push-url="true">
+    <select name="departamento">
+      <option value="">Todos los departamentos</option>
+      {{range $d.Departamentos}}
+      <option value="{{.ID}}" {{if eq (printf "%d" .ID) $d.FiltroDepto}}selected{{end}}>{{.Nombre}} — {{.Propietario}}</option>
+      {{end}}
+    </select>
+    <input type="month" name="mes" value="{{$d.FiltroMes}}">
+    <select name="estado">
+      <option value="">Todos los estados</option>
+      <option value="pendiente" {{if eq $d.FiltroEstado "pendiente"}}selected{{end}}>Pendiente</option>
+      <option value="pagado" {{if eq $d.FiltroEstado "pagado"}}selected{{end}}>Pagado</option>
+    </select>
+    <button type="submit" class="btn">Filtrar</button>
+  </form>
+
+  {{template "recibos_table" .}}
+</div>
+{{end}}

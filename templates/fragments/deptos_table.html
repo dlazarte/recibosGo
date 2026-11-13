@@ -1,0 +1,31 @@
+{{define "deptos_table"}}
+{{$d := .Data}}
+<div class="card wide" id="deptos-table">
+  <h2>Listado ({{len $d.Departamentos}})</h2>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Unidad</th>
+        <th>Propietario</th>
+        <th>Coef. %</th>
+        <th>Estado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range $d.Departamentos}}
+      <tr>
+        <td>{{.Nombre}}</td>
+        <td>{{if .Dueño}}{{.Dueño.Nombre}}{{else}}<em style="color:var(--c-text-muted)">sin asignar</em>{{end}}</td>
+        <td>{{printf "%.4f" .Coeficiente}}</td>
+        <td>{{if .Activo}}<span class="badge ok">Activo</span>{{else}}<span class="badge warn">Inactivo</span>{{end}}</td>
+        <td><a href="/departamentos?edit={{.ID}}" class="btn ghost sm">Editar</a></td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{template "paginador" $d.Paginado}}
+</div>
+{{end}}

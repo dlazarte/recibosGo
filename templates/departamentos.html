@@ -1,0 +1,65 @@
+{{define "title"}}Departamentos - RecibosGo{{end}}
+{{define "content"}}
+{{$d := .Data}}
+<div class="page">
+  <h1>Departamentos</h1>
+
+  <form method="get" action="/departamentos" class="search"
+        hx-get="/departamentos"
+        hx-target="#deptos-table"
+        hx-swap="outerHTML"
+        hx-push-url="true">
+    <input type="text" name="q" placeholder="Buscar por nombre, piso o propietario" value="{{$d.Search}}">
+    <button type="submit" class="btn">Buscar</button>
+  </form>
+
+  {{if $d.Msg}}<p class="msg-ok">{{$d.Msg}}</p>{{end}}
+
+  <div class="cols">
+    <div class="card">
+      <h2>{{if $d.Edit}}Editar departamento #{{$d.Edit.ID}}{{else}}Nuevo departamento{{end}}</h2>
+      <form method="post" action="{{if $d.Edit}}/departamentos/{{$d.Edit.ID}}{{else}}/departamentos{{end}}">
+        <label>Nombre (unidad) *
+          <input type="text" name="nombre" required value="{{if $d.Edit}}{{$d.Edit.Nombre}}{{end}}" placeholder="ej: 1A, SS2A">
+        </label>
+        <label>Número legacy
+          <input type="text" name="numero" value="{{if $d.Edit}}{{$d.Edit.Numero}}{{end}}">
+        </label>
+        <label>Piso
+          <input type="text" name="piso" value="{{if $d.Edit}}{{if $d.Edit.Piso}}{{$d.Edit.Piso}}{{end}}{{end}}">
+        </label>
+        <label>Propietario (legacy)
+          <input type="text" name="propietario" value="{{if $d.Edit}}{{$d.Edit.Propietario}}{{end}}">
+        </label>
+        <label>Teléfono
+          <input type="text" name="telefono" value="{{if $d.Edit}}{{$d.Edit.Telefono}}{{end}}">
+        </label>
+        <label>Email
+          <input type="email" name="email" value="{{if $d.Edit}}{{$d.Edit.Email}}{{end}}">
+        </label>
+        <label>Coeficiente (%) *
+          <input type="number" step="0.000001" min="0" name="coeficiente" required value="{{if $d.Edit}}{{$d.Edit.Coeficiente}}{{end}}" placeholder="ej: 2.302566">
+        </label>
+        <label>Dueño
+          <select name="id_dueño">
+            <option value="">-- seleccionar --</option>
+            {{range $d.Personas}}
+            <option value="{{.ID}}" {{if and $d.Edit (eq $d.Edit.IDDueño .ID)}}selected{{end}}>{{.Nombre}}</option>
+            {{end}}
+          </select>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="activo" {{if not $d.Edit}}checked{{else if $d.Edit.Activo}}checked{{end}}>
+          Activo
+        </label>
+        <div style="margin-top:1rem; display:flex; gap:0.5rem;">
+          <button type="submit" class="btn">{{if $d.Edit}}Guardar cambios{{else}}Crear{{end}}</button>
+          {{if $d.Edit}}<a class="btn secondary" href="/departamentos">Cancelar</a>{{end}}
+        </div>
+      </form>
+    </div>
+
+    {{template "deptos_table" .}}
+  </div>
+</div>
+{{end}}

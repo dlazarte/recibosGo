@@ -1,0 +1,74 @@
+{{define "reportes_content"}}
+{{$d := .Data}}
+<div id="reportes-content">
+<div class="cards">
+  <div class="card stat">
+    <span class="num">$ {{printf "%.2f" $d.Total}}</span>
+    <span class="label">Total emitido</span>
+  </div>
+  <div class="card stat ok-card">
+    <span class="num">$ {{printf "%.2f" $d.Cobrado}}</span>
+    <span class="label">Cobrado</span>
+  </div>
+  <div class="card stat warn-card">
+    <span class="num">$ {{printf "%.2f" $d.Pendiente}}</span>
+    <span class="label">Pendiente</span>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Recibos del mes ({{len $d.Recibos}})</h2>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Nro</th>
+        <th>Fecha</th>
+        <th>Unidad</th>
+        <th>Total</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range $d.Recibos}}
+      <tr>
+        <td><a href="/recibos/{{.ID}}">{{.NumeroRecibo}}</a></td>
+        <td>{{fmtFechaD .Fecha}}</td>
+        <td>{{trimNumero .Departamento.Numero}} — {{.Departamento.Propietario}}</td>
+        <td>$ {{printf "%.2f" .Total}}</td>
+        <td>{{if .Pagado}}<span class="badge ok">Pagado</span>{{else}}<span class="badge warn">Pendiente</span>{{end}}</td>
+      </tr>
+    {{else}}
+      <tr><td colspan="5" class="empty">Sin recibos en el periodo.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{template "paginador" $d.Paginado}}
+</div>
+
+{{if $d.PorServicio}}
+<div class="card">
+  <h2>Desglose por servicio</h2>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Servicio</th>
+        <th>Importe</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range $servicio, $importe := $d.PorServicio}}
+      <tr>
+        <td>{{$servicio}}</td>
+        <td>$ {{printf "%.2f" $importe}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  </div>
+</div>
+{{end}}
+</div>
+{{end}}

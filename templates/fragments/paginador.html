@@ -1,0 +1,20 @@
+{{define "paginador"}}
+{{$p := .}}
+{{if gt $p.TotalPages 1}}
+<nav class="paginador">
+  {{if $p.HasPrev}}
+  <a href="{{$p.PrevURL}}" hx-get="{{$p.PrevURL}}" hx-target="{{$p.Target}}" hx-swap="outerHTML" hx-push-url="true">← Anterior</a>
+  {{else}}
+  <span class="disabled">← Anterior</span>
+  {{end}}
+  {{range $p.Links}}
+  <a href="{{.URL}}" hx-get="{{.URL}}" hx-target="{{$p.Target}}" hx-swap="outerHTML" hx-push-url="true"{{if .Active}} class="active"{{end}}>{{.Num}}</a>
+  {{end}}
+  {{if $p.HasNext}}
+  <a href="{{$p.NextURL}}" hx-get="{{$p.NextURL}}" hx-target="{{$p.Target}}" hx-swap="outerHTML" hx-push-url="true">Siguiente →</a>
+  {{else}}
+  <span class="disabled">Siguiente →</span>
+  {{end}}
+</nav>
+{{end}}
+{{end}}

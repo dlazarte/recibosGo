@@ -1,0 +1,23 @@
+{{define "recibo_unidades"}}
+{{$d := .}}
+{{if $d.Departamentos}}
+<h3>Unidades del titular *</h3>
+<div class="checkbox-group">
+  {{range $d.Departamentos}}
+  <label class="check">
+    <input type="checkbox" name="id_departamento" value="{{.ID}}"
+           data-nombre="{{.Nombre}}"
+           data-tiene-inquilino="{{if .IDInquilino}}true{{else}}false{{end}}"
+           checked>
+    {{.Nombre}}
+  </label>
+  {{end}}
+</div>
+{{else if $d.PersonaID}}
+<p class="msg-error">Este titular no tiene unidades asignadas</p>
+{{end}}
+<script>
+document.getElementById('persona_tipo').value = '{{$d.PersonaTipo}}';
+aplicarPersona();
+</script>
+{{end}}

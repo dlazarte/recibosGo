@@ -1,0 +1,56 @@
+{{define "title"}}Servicios - RecibosGo{{end}}
+{{define "content"}}
+{{$d := .Data}}
+<div class="page">
+  <h1>Servicios</h1>
+  {{if $d.Msg}}<p class="msg-ok">{{$d.Msg}}</p>{{end}}
+
+  <div class="cols">
+    <div class="card">
+      <h2>{{if $d.Edit}}Editar servicio #{{$d.Edit.ID}}{{else}}Nuevo servicio{{end}}</h2>
+      <form method="post" action="{{if $d.Edit}}/servicios/{{$d.Edit.ID}}{{else}}/servicios{{end}}">
+        <label>Nombre *
+          <input type="text" name="nombre" required value="{{if $d.Edit}}{{$d.Edit.Nombre}}{{end}}">
+        </label>
+        <label>Precio unitario
+          <input type="number" step="0.01" name="precio_unitario" value="{{if $d.Edit}}{{printf "%.2f" $d.Edit.PrecioUnitario}}{{end}}">
+        </label>
+        <label class="check">
+          <input type="checkbox" name="activo" {{if not $d.Edit}}checked{{else if $d.Edit.Activo}}checked{{end}}>
+          Activo
+        </label>
+        <div style="margin-top:1rem; display:flex; gap:0.5rem;">
+          <button type="submit" class="btn">{{if $d.Edit}}Guardar cambios{{else}}Crear{{end}}</button>
+          {{if $d.Edit}}<a class="btn secondary" href="/servicios">Cancelar</a>{{end}}
+        </div>
+      </form>
+    </div>
+
+    <div class="card wide">
+      <h2>Listado ({{len $d.Servicios}})</h2>
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Precio unitario</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+        {{range $d.Servicios}}
+          <tr>
+            <td>{{.Nombre}}</td>
+            <td>$ {{printf "%.2f" .PrecioUnitario}}</td>
+            <td>{{if .Activo}}<span class="badge ok">Activo</span>{{else}}<span class="badge warn">Inactivo</span>{{end}}</td>
+            <td><a href="/servicios?edit={{.ID}}" class="btn ghost sm">Editar</a></td>
+          </tr>
+        {{end}}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+</div>
+{{end}}

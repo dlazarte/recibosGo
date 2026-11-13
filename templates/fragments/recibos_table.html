@@ -1,0 +1,38 @@
+{{define "recibos_table"}}
+{{$d := .Data}}
+<div class="card" id="recibos-table">
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Nro</th>
+        <th>Fecha</th>
+        <th>Unidad</th>
+        <th>Propietario</th>
+        <th>Total</th>
+        <th>Estado</th>
+        <th>Pago</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range $d.Recibos}}
+      <tr>
+        <td>{{.NumeroRecibo}}</td>
+        <td>{{fmtFechaD .Fecha}}</td>
+        <td>{{trimNumero .Departamento.Numero}}</td>
+        <td>{{.Departamento.Propietario}}</td>
+        <td>$ {{fmtMoney .Total}}</td>
+        <td>{{if .Pagado}}<span class="badge ok">Pagado</span>{{else}}<span class="badge warn">Pendiente</span>{{end}}</td>
+        <td>{{.FormaPago}}</td>
+        <td><a href="/recibos/{{.ID}}" class="btn ghost sm">Ver</a> <a href="/recibos/{{.ID}}/pdf" class="btn ghost sm" target="_blank">PDF</a></td>
+      </tr>
+    {{else}}
+      <tr><td colspan="8" class="empty">No hay recibos para los filtros seleccionados.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{template "paginador" $d.Paginado}}
+</div>
+{{end}}

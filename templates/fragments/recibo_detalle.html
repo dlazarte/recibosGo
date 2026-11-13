@@ -1,0 +1,72 @@
+{{define "recibo_detalle"}}
+{{$r := .Data.Recibo}}
+<div class="card">
+  <div class="row">
+    <div style="flex:1;">
+      <p><strong>Fecha:</strong> {{fmtFechaD $r.Fecha}}</p>
+      <p><strong>Unidad:</strong> {{trimNumero $r.Departamento.Numero}}</p>
+      {{if $r.Departamento.Piso}}<p><strong>Piso:</strong> {{$r.Departamento.Piso}}</p>{{end}}
+      <p><strong>Propietario:</strong> {{$r.Departamento.Propietario}}</p>
+    </div>
+    <div style="flex:1; text-align:right;">
+      <p><strong>Estado:</strong> {{if $r.Pagado}}<span class="badge ok">Pagado</span>{{else}}<span class="badge warn">Pendiente</span>{{end}}</p>
+      {{if $r.FormaPago}}<p><strong>Forma de pago:</strong> {{$r.FormaPago}}</p>{{end}}
+      <p style="font-size:1.1rem;"><strong>Total:</strong> $ {{fmtMoney $r.Total}}</p>
+    </div>
+  </div>
+  {{if $r.Observaciones}}<p style="margin-top:0.75rem;"><strong>Observaciones:</strong> {{$r.Observaciones}}</p>{{end}}
+</div>
+
+<div class="card">
+  <h2>Detalle</h2>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Concepto</th>
+        <th>Cant.</th>
+        <th>Precio</th>
+        <th>Importe</th>
+        <th>Pago</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range $r.Detalles}}
+      <tr>
+        <td>{{.Servicio.Nombre}}{{if .Descripcion}} — {{.Descripcion}}{{end}}</td>
+        <td>{{.Cantidad}}</td>
+        <td>$ {{printf "%.2f" .Precio}}</td>
+        <td>$ {{printf "%.2f" (mul .Precio .Cantidad)}}</td>
+        <td>{{if eq .FormaPago "E"}}Efectivo{{else if eq .FormaPago "T"}}Transferencia{{else}}—{{end}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3" class="align-right"><strong>TOTAL</strong></td>
+        <td><strong>$ {{fmtMoney $r.Total}}</strong></td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+  </div>
+</div>
+
+{{if not $r.Pagado}}
+<div class="card">
+  <h2>Registrar pago</h2>
+  <form method="post" action="/recibos/{{$r.ID}}/pagar" class="pay-form"
+        hx-post="/recibos/{{$r.ID}}/pagar"
+        hx-target="#recibo-detalle"
+        hx-swap="outerHTML">
+    <label>Forma de pago
+      <select name="forma_pago">
+        <option value="E">Efectivo</option>
+        <option value="T">Transferencia</option>
+      </select>
+    </label>
+    <button type="submit" class="btn success">Marcar como pagado</button>
+  </form>
+</div>
+{{end}}
+{{end}}

@@ -1,0 +1,17 @@
+{{define "title"}}Reportes mensuales - RecibosGo{{end}}
+{{define "content"}}
+{{$d := .Data}}
+<div class="page">
+  <h1>Reportes mensuales</h1>
+  <form method="get" action="/reportes" class="search"
+        hx-get="/reportes"
+        hx-target="#reportes-content"
+        hx-swap="outerHTML"
+        hx-push-url="true">
+    <input type="month" name="mes" value="{{$d.Mes}}">
+    <button type="submit" class="btn">Ver mes</button>
+  </form>
+
+  {{template "reportes_content" .}}
+</div>
+{{end}}

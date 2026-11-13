@@ -1,0 +1,145 @@
+{{define "title"}}Nuevo recibo - RecibosGo{{end}}
+{{define "content"}}
+{{$d := .Data}}
+<div class="page">
+  <h1>Nuevo recibo</h1>
+  <form method="post" action="/recibos" id="recibo-form">
+    <input type="hidden" name="persona_tipo" id="persona_tipo" value="{{$d.PersonaTipo}}">
+
+    <div class="card">
+      <h2>1. Titular y fecha</h2>
+      <div class="row">
+        <label>Persona *
+          <select name="id_persona" required
+                  hx-get="/recibos/new"
+                  hx-include="[name='fecha']"
+                  hx-target="#unidades-container"
+                  hx-swap="innerHTML"
+                  hx-trigger="change">
+            <option value="">Seleccionar...</option>
+            {{range $d.Personas}}
+            <option value="{{.ID}}" {{if eq $d.PersonaID .ID}}selected{{end}}>{{.Nombre}} ({{.Tipo}})</option>
+            {{end}}
+          </select>
+        </label>
+        <label>Fecha
+          <input type="date" name="fecha" value="{{$d.Fecha}}">
+        </label>
+      </div>
+    </div>
+
+    <div class="card" id="unidades-container">
+      {{if $d.PersonaID}}{{template "recibo_unidades" $d}}{{end}}
+    </div>
+
+    <div class="card">
+      <h2>2. Items</h2>
+      <div id="items">
+        <div class="item-row header-row">
+          <span>Servicio</span>
+          <span>Cant.</span>
+          <span>Precio</span>
+          <span>Descripción</span>
+          <span></span>
+        </div>
+        {{template "item_row" $d}}
+      </div>
+      <template id="tpl-item">{{template "item_row" $d}}</template>
+      <button type="button" class="btn secondary" onclick="agregarItem()" style="margin-top:0.5rem;">+ Agregar item</button>
+    </div>
+
+    <p class="total-line">Total por unidad: <strong>$ <span id="total">0.00</span></strong></p>
+    <button type="submit" class="btn">Generar recibos</button>
+  </form>
+</div>
+
+<script>
+function getDeptos(){
+  return Array.prototype.map.call(document.querySelectorAll('input[name="id_departamento"]:checked'), function(cb){
+    return {
+      nombre: cb.getAttribute('data-nombre'),
+      tieneInquilino: cb.getAttribute('data-tiene-inquilino') === 'true'
+    };
+  });
+}
+
+function describir(sel){
+  if (!sel || sel.value === '0') return;
+  var opt = sel.selectedOptions[0];
+  var row = sel.closest('.item-row');
+  var desc = row.querySelector('input[name="descripcion"]');
+  var tipo = document.getElementById('persona_tipo').value;
+  var esExtra = opt.getAttribute('data-tipo') === 'extraordinaria';
+  var deptos = getDeptos();
+  var nombres;
+  if (tipo === 'inquilino' || esExtra){
+    nombres = deptos.map(function(d){ return d.nombre; });
+  } else {
+    nombres = deptos.filter(function(d){ return !d.tieneInquilino; }).map(function(d){ return d.nombre; });
+  }
+  desc.value = nombres.map(function(n){ return 'Depto ' + n; }).join(', ');
+}
+
+function recalcTotal(rows){
+  var total = 0;
+  document.querySelectorAll('#items .item-row:not(.header-row)').forEach(function(row){
+    var sel = row.querySelector('select[name="id_servicio"]');
+    if (sel.value === '0') return;
+    var cant = parseFloat(row.querySelector('input[name="cantidad"]').value) || 0;
+    var precio = parseFloat(row.querySelector('input[name="precio"]').value) || 0;
+    total += cant * precio;
+  });
+  document.getElementById('total').textContent = total.toFixed(2);
+}
+
+function aplicarPersona(){
+  var esInquilino = document.getElementById('persona_tipo').value === 'inquilino';
+  document.querySelectorAll('#items .item-row:not(.header-row)').forEach(function(row){
+    var sel = row.querySelector('select[name="id_servicio"]');
+    sel.querySelectorAll('option[data-tipo="extraordinaria"]').forEach(function(opt){
+      opt.disabled = esInquilino;
+      opt.hidden = esInquilino;
+    });
+    if (esInquilino && sel.selectedOptions[0] && sel.selectedOptions[0].getAttribute('data-tipo') === 'extraordinaria'){
+      sel.value = '0';
+      row.querySelector('input[name="descripcion"]').value = '';
+    }
+    if (sel.value !== '0') describir(sel);
+  });
+  recalcTotal();
+}
+
+function agregarItem(){
+  var row = document.getElementById('tpl-item').content.querySelector('.item-row').cloneNode(true);
+  document.getElementById('items').appendChild(row);
+  aplicarPersona();
+}
+
+document.getElementById('recibo-form').addEventListener('change', function(e){
+  if (e.target.name === 'id_departamento') aplicarPersona();
+  if (e.target.name === 'id_servicio'){
+    var opt = e.target.selectedOptions[0];
+    e.target.closest('.item-row').querySelector('input[name="precio"]').value = opt ? opt.getAttribute('data-precio') : '0.00';
+    describir(e.target);
+    aplicarPersona(); // aplica reset si es inquilino y eligió extra (defensivo)
+  }
+  if (e.target.name === 'cantidad' || e.target.name === 'precio') recalcTotal();
+});
+
+document.getElementById('recibo-form').addEventListener('submit', function(e){
+  if (document.querySelectorAll('input[name="id_departamento"]:checked').length === 0){
+    e.preventDefault();
+    alert('Selecciona al menos una unidad.');
+    return;
+  }
+  var has = false;
+  document.querySelectorAll('#items .item-row:not(.header-row)').forEach(function(row){
+    if (row.querySelector('select[name="id_servicio"]').value !== '0') has = true;
+  });
+  if (!has){
+    e.preventDefault();
+    alert('Agrega al menos un item con servicio.');
+  }
+});
+</script>
+{{end}}

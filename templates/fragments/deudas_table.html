@@ -1,0 +1,38 @@
+{{define "deudas_table"}}
+{{$d := .Data}}
+<div class="card" id="deudas-table">
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Período</th>
+        <th>Unidad</th>
+        <th>Titular</th>
+        <th>Expensas</th>
+        <th>SAT + CISI</th>
+        <th>Total</th>
+        <th>Estado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range $d.Items}}
+      <tr>
+        <td>{{fmtFechaD .Recibo.Fecha}}</td>
+        <td>{{.Recibo.Departamento.Nombre}}</td>
+        <td>{{if .Recibo.Departamento.Dueño}}{{.Recibo.Departamento.Dueño.Nombre}}{{else}}{{.Recibo.Departamento.Propietario}}{{end}}</td>
+        <td>$ {{fmtMoney .Expensas}}</td>
+        <td>$ {{fmtMoney .SatCisi}}</td>
+        <td>$ {{fmtMoney .Recibo.Total}}</td>
+        <td>{{if .Recibo.Pagado}}<span class="badge ok">Pagado</span>{{else}}<span class="badge warn">Pendiente</span>{{end}}</td>
+        <td><a href="/recibos/{{.Recibo.ID}}" class="btn ghost sm">Ver</a></td>
+      </tr>
+    {{else}}
+      <tr><td colspan="8" class="empty">No hay registros de deuda para los filtros seleccionados.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{template "paginador" $d.Paginado}}
+</div>
+{{end}}

@@ -1,0 +1,27 @@
+{{define "title"}}Iniciar sesión - RecibosGo{{end}}
+{{define "content"}}
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="logo-area">
+      <div class="logo-icon">R</div>
+      <h1>RecibosGo</h1>
+      <p class="tagline">Sistema de Expensas y Servicios</p>
+    </div>
+
+    {{if .Err}}<p class="login-error">{{.Err}}</p>{{end}}
+
+    <form method="post" action="/login">
+      <label>Email
+        <input type="email" name="email" required autofocus placeholder="tu@email.com">
+      </label>
+      <label>Contraseña
+        <input type="password" name="password" required placeholder="••••••••">
+      </label>
+      <div class="check-row">
+        <label class="check"><input type="checkbox" name="remember"> Recordarme</label>
+      </div>
+      <button type="submit" class="btn">Ingresar</button>
+    </form>
+  </div>
+</div>
+{{end}}

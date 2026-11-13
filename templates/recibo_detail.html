@@ -1,0 +1,17 @@
+{{define "title"}}Recibo {{.Data.Recibo.NumeroRecibo}} - RecibosGo{{end}}
+{{define "content"}}
+{{$r := .Data.Recibo}}
+<div class="page">
+  <div class="row-between">
+    <h1>Recibo {{$r.NumeroRecibo}}</h1>
+    <div style="display:flex; gap:0.5rem;">
+      <a class="btn secondary" href="/recibos/{{$r.ID}}/pdf" target="_blank">Descargar PDF</a>
+      <a class="btn" href="/recibos">Volver</a>
+    </div>
+  </div>
+
+  <div id="recibo-detalle">
+  {{template "recibo_detalle" .}}
+  </div>
+</div>
+{{end}}

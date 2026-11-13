@@ -1,0 +1,50 @@
+{{define "title"}}Titulares - RecibosGo{{end}}
+{{define "content"}}
+{{$d := .Data}}
+<div class="page">
+  <h1>Titulares / Personas</h1>
+  {{if $d.Msg}}<p class="msg-ok">{{$d.Msg}}</p>{{end}}
+
+  <div class="cols">
+    <div class="card">
+      <h2>{{if $d.Edit}}Editar persona #{{$d.Edit.ID}}{{else}}Nueva persona{{end}}</h2>
+      <form method="post" action="{{if $d.Edit}}/personas/{{$d.Edit.ID}}{{else}}/personas{{end}}">
+        <label>Nombre *
+          <input type="text" name="nombre" required value="{{if $d.Edit}}{{$d.Edit.Nombre}}{{end}}">
+        </label>
+        <label>Teléfono
+          <input type="text" name="telefono" value="{{if $d.Edit}}{{$d.Edit.Telefono}}{{end}}">
+        </label>
+        <label>Email
+          <input type="email" name="email" value="{{if $d.Edit}}{{$d.Edit.Email}}{{end}}">
+        </label>
+        <label>Tipo *
+          <select name="tipo" required>
+            <option value="propietario" {{if and $d.Edit (eq $d.Edit.Tipo "propietario")}}selected{{end}}>Propietario</option>
+            <option value="inquilino" {{if and $d.Edit (eq $d.Edit.Tipo "inquilino")}}selected{{end}}>Inquilino</option>
+          </select>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="activo" {{if not $d.Edit}}checked{{else if $d.Edit.Activo}}checked{{end}}>
+          Activo
+        </label>
+        <div style="margin-top:1rem; display:flex; gap:0.5rem;">
+          <button type="submit" class="btn">{{if $d.Edit}}Guardar cambios{{else}}Crear{{end}}</button>
+          {{if $d.Edit}}<a class="btn secondary" href="/personas">Cancelar</a>{{end}}
+        </div>
+      </form>
+    </div>
+
+    <div class="card wide">
+      <h2>Listado ({{len $d.Personas}})</h2>
+      <form class="search" method="get" action="/personas">
+        <input type="text" name="q" placeholder="Buscar nombre, teléfono, email..." value="{{$d.Search}}">
+        <button type="submit" class="btn secondary">Buscar</button>
+      </form>
+      <div id="personas-table">
+        {{template "personas_table" $d}}
+      </div>
+    </div>
+  </div>
+</div>
+{{end}}
