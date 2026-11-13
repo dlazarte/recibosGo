@@ -113,6 +113,7 @@ type Recibo struct {
 	NumeroRecibo   string
 	Fecha          Fecha
 	Periodo        string `gorm:"default:''"` // YYYY-MM de la deuda generada; vacío en recibos manuales
+	Tipo           string `gorm:"default:''"` // expensas | servicios
 	IDDepartamento uint
 	IDPersona      *uint // titular al generar (nullable, NULL en legacy)
 	Observaciones  *string
@@ -137,6 +138,23 @@ type DetalleRecibo struct {
 }
 
 func (DetalleRecibo) TableName() string { return "detallerecibo" }
+
+// ConsumoLuz guarda las lecturas y el cálculo de luz EDET por unidad y período.
+type ConsumoLuz struct {
+	ID              uint   `gorm:"primaryKey"`
+	Periodo         string `gorm:"uniqueIndex:idx_consumo_periodo_depto"`
+	IDDepartamento  uint   `gorm:"uniqueIndex:idx_consumo_periodo_depto"`
+	LecturaAnterior float64
+	LecturaActual   float64
+	ConsumoKwh      float64
+	PrecioKw        float64
+	MontoConsumo    float64
+	ServicioComun   float64
+	Total           float64
+	Departamento    Departamento `gorm:"foreignKey:IDDepartamento"`
+}
+
+func (ConsumoLuz) TableName() string { return "consumo_luz" }
 
 func (r Recibo) Pagado() bool {
 	for _, d := range r.Detalles {

@@ -10,6 +10,7 @@ erDiagram
     persona ||--o{ recibo : "id_persona"
     recibo ||--o{ detallerecibo : "id_recibo"
     servicio ||--o{ detallerecibo : "id_servicio"
+    departamento ||--o{ consumo_luz : "id_departamento"
 
     departamento {
         int id PK
@@ -37,6 +38,7 @@ erDiagram
         string numero_recibo "REC-YYYY-NNNN"
         date fecha
         string periodo "YYYY-MM de la deuda generada; '' si es manual"
+        string tipo "expensas | servicios"
         int id_departamento FK
         int id_persona FK "nullable, titular al generar"
         string observaciones
@@ -56,6 +58,18 @@ erDiagram
         int cantidad
         string descripcion
         string forma_pago "E | T | ''"
+    }
+    consumo_luz {
+        int id PK
+        string periodo "YYYY-MM"
+        int id_departamento FK
+        float lectura_anterior
+        float lectura_actual
+        float consumo_kwh
+        float precio_kw
+        float monto_consumo
+        float servicio_comun
+        float total
     }
 ```
 
@@ -91,6 +105,11 @@ erDiagram
 - El resto no cambia.
 
 **`detallerecibo`** — líneas de un recibo. Sin cambios.
+
+**`consumo_luz`** — lectura y cálculo de luz EDET por unidad y período.
+- `periodo` + `id_departamento` — clave única.
+- `lectura_anterior`, `lectura_actual`, `consumo_kwh` — datos del medidor.
+- `precio_kw`, `monto_consumo`, `servicio_comun`, `total` — resultado de la generación de servicios.
 
 **`servicio`** — catálogo de servicios. Sin cambios.
 

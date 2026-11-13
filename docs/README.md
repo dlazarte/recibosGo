@@ -40,4 +40,4 @@ Estos documentos sirven a dos audiencias:
 ## Estado del proyecto
 
 - **v2.1 (implementado)**: unidad con `nombre`, `persona` + FKs directas, `coeficiente` por unidad, `recibo.periodo`, generación multi-unidad y deuda mensual.
-- **v2.2 (en curso)**: PostgreSQL como única base, adaptación de las planillas (`ExpensasMP2026.xlsx`) al modelo, pantallas y procesos restantes.
+- **v2.2 (en curso)**: PostgreSQL como única base, adaptación de las planillas (`ExpensasMP2026.xlsx`, `LuzMP2026.xlsx`) al modelo, generación de servicios EDET y pantallas/procesos restantes.

@@ -66,8 +66,9 @@ departamento ─┘
 
 - `departamento`: `id`, `nombre` (unidad legible: 1A, SS2A), `numero` (legacy), `piso`, `propietario` (legacy), `telefono`, `email` (legacy), `id_dueño` (FK→persona, NOT NULL), `id_inquilino` (FK→persona, NULLABLE), `coeficiente` (% de prorrateo), `activo`
 - `persona`: `id`, `nombre`, `telefono`, `email`, `tipo` (propietario|inquilino), `activo`
-- `recibo`: `id`, `numero_recibo`, `fecha`, `periodo` (AAAA-MM de la deuda generada), `id_departamento`, `id_persona` (nullable, titular al generar), `observaciones`, `total`
+- `recibo`: `id`, `numero_recibo`, `fecha`, `periodo` (AAAA-MM de la deuda generada), `tipo` (expensas|servicios), `id_departamento`, `id_persona` (nullable, titular al generar), `observaciones`, `total`
 - `detallerecibo`: sin cambios
+- `consumo_luz`: `id`, `periodo`, `id_departamento`, `lectura_anterior`, `lectura_actual`, `consumo_kwh`, `precio_kw`, `monto_consumo`, `servicio_comun`, `total`
 - `servicio`: sin cambios
 - `users`: sin cambios (solo auth)
 

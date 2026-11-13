@@ -42,6 +42,7 @@ func Connect(cfg config.Config) (*gorm.DB, error) {
 			&models.Servicio{},
 			&models.Recibo{},
 			&models.DetalleRecibo{},
+			&models.ConsumoLuz{},
 		); err != nil {
 			return nil, err
 		}
@@ -97,6 +98,17 @@ func migrateV21(db *gorm.DB) {
 			db.Exec("ALTER TABLE recibo ADD COLUMN periodo VARCHAR DEFAULT ''")
 		}
 		db.Exec("UPDATE recibo SET periodo = '' WHERE periodo IS NULL")
+	}
+	if !m.HasColumn("recibo", "tipo") {
+		if err := m.AddColumn(&models.Recibo{}, "Tipo"); err != nil {
+			db.Exec("ALTER TABLE recibo ADD COLUMN tipo VARCHAR DEFAULT ''")
+		}
+		db.Exec("UPDATE recibo SET tipo = '' WHERE tipo IS NULL")
+	}
+	if !m.HasTable("consumo_luz") {
+		if err := m.CreateTable(&models.ConsumoLuz{}); err != nil {
+			log.Printf("error creando consumo_luz: %v", err)
+		}
 	}
 }
 

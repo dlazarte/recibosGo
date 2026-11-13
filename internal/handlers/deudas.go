@@ -13,16 +13,18 @@ import (
 	"recibosgo/internal/models"
 )
 
-// Servicios existentes que representan las dos componentes de la deuda mensual.
+// Servicios existentes que representan cada componente de la deuda mensual.
 const (
 	servicioExpensas = "Expensas Comunes. Pago Final"
 	servicioSatCisi  = "Servicios. Pago Final"
+	servicioLuz      = "Luz (EDET)"
 )
 
 type DeudaItem struct {
 	Recibo   models.Recibo
 	Expensas float64
 	SatCisi  float64
+	Luz      float64
 }
 
 type DeudasData struct {
@@ -33,6 +35,7 @@ type DeudasData struct {
 	FiltroPersona string
 	FiltroMes     string
 	Periodo       string
+	Lecturas      int64
 	Msg           string
 	Paginado      Pagination
 }
@@ -94,6 +97,8 @@ func (a *App) DeudasList(w http.ResponseWriter, r *http.Request) {
 				it.Expensas += monto
 			case servicioSatCisi:
 				it.SatCisi += monto
+			case servicioLuz:
+				it.Luz += monto
 			}
 		}
 		items = append(items, it)
@@ -108,6 +113,8 @@ func (a *App) DeudasList(w http.ResponseWriter, r *http.Request) {
 	if periodo == "" {
 		periodo = time.Now().Format("2006-01")
 	}
+	var lecturas int64
+	a.DB.Model(&models.ConsumoLuz{}).Where("periodo = ?", periodo).Count(&lecturas)
 
 	data := DeudasData{
 		Items:         items,
@@ -117,6 +124,7 @@ func (a *App) DeudasList(w http.ResponseWriter, r *http.Request) {
 		FiltroPersona: personaID,
 		FiltroMes:     mes,
 		Periodo:       periodo,
+		Lecturas:      lecturas,
 		Msg:           r.URL.Query().Get("msg"),
 		Paginado:      paginar(r, total, "#deudas-table"),
 	}
@@ -148,9 +156,9 @@ func (a *App) DeudaGenerar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var existing int64
-	a.DB.Model(&models.Recibo{}).Where("periodo = ?", periodo).Count(&existing)
+	a.DB.Model(&models.Recibo{}).Where("periodo = ? AND tipo = ?", periodo, "expensas").Count(&existing)
 	if existing > 0 {
-		http.Redirect(w, r, "/deudas?mes="+periodo+"&msg="+urlEscape("La deuda de "+periodo+" ya fue generada"), http.StatusFound)
+		http.Redirect(w, r, "/deudas?mes="+periodo+"&msg="+urlEscape("La deuda de expensas de "+periodo+" ya fue generada"), http.StatusFound)
 		return
 	}
 
@@ -187,6 +195,7 @@ func (a *App) DeudaGenerar(w http.ResponseWriter, r *http.Request) {
 				NumeroRecibo:   nextNumeroRecibo(tx, start),
 				Fecha:          models.Fecha{Time: start},
 				Periodo:        periodo,
+				Tipo:           "expensas",
 				IDDepartamento: d.ID,
 				IDPersona:      uintPtr(d.IDDueño),
 				Total:          exp + sat,
@@ -204,7 +213,89 @@ func (a *App) DeudaGenerar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/deudas?mes="+periodo+"&msg="+urlEscape(fmt.Sprintf("Se generaron %d recibos de deuda para %s", created, periodo)), http.StatusFound)
+	http.Redirect(w, r, "/deudas?mes="+periodo+"&msg="+urlEscape(fmt.Sprintf("Se generaron %d recibos de expensas para %s", created, periodo)), http.StatusFound)
+}
+
+// ServicioGenerar calcula la luz EDET: consumo por unidad + servicio común.
+// servicio_común = (factura EDET − Σ(consumo × $/kW)) / cantidad de unidades.
+func (a *App) ServicioGenerar(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	periodo := r.FormValue("periodo")
+	start, err := time.Parse("2006-01", periodo)
+	if err != nil {
+		http.Redirect(w, r, "/deudas?msg="+urlEscape("Período inválido (usar AAAA-MM)"), http.StatusFound)
+		return
+	}
+	totalFactura, _ := strconv.ParseFloat(r.FormValue("total_factura"), 64)
+	precioKw, _ := strconv.ParseFloat(r.FormValue("precio_kw"), 64)
+	if totalFactura <= 0 || precioKw <= 0 {
+		http.Redirect(w, r, "/deudas?msg="+urlEscape("Ingresá factura y precio del kW mayores a cero"), http.StatusFound)
+		return
+	}
+
+	var existing int64
+	a.DB.Model(&models.Recibo{}).Where("periodo = ? AND tipo = ?", periodo, "servicios").Count(&existing)
+	if existing > 0 {
+		http.Redirect(w, r, "/deudas?mes="+periodo+"&msg="+urlEscape("Los servicios de "+periodo+" ya fueron generados"), http.StatusFound)
+		return
+	}
+
+	var consumos []models.ConsumoLuz
+	a.DB.Preload("Departamento").Where("periodo = ?", periodo).Order("id_departamento").Find(&consumos)
+	if len(consumos) == 0 {
+		http.Redirect(w, r, "/deudas?mes="+periodo+"&msg="+urlEscape("No hay lecturas de luz cargadas para "+periodo), http.StatusFound)
+		return
+	}
+
+	suma := 0.0
+	for _, c := range consumos {
+		suma += c.ConsumoKwh * precioKw
+	}
+	comun := round2((totalFactura - suma) / float64(len(consumos)))
+
+	luzSvc := a.findOrCreateServicio(servicioLuz)
+	created := 0
+	err = a.DB.Transaction(func(tx *gorm.DB) error {
+		for _, c := range consumos {
+			monto := round2(c.ConsumoKwh * precioKw)
+			total := round2(monto + comun)
+			c.PrecioKw = precioKw
+			c.MontoConsumo = monto
+			c.ServicioComun = comun
+			c.Total = total
+			if err := tx.Omit("Departamento").Save(&c).Error; err != nil {
+				return err
+			}
+			desc := "Luz EDET " + periodo
+			recibo := models.Recibo{
+				NumeroRecibo:   nextNumeroRecibo(tx, start),
+				Fecha:          models.Fecha{Time: start},
+				Periodo:        periodo,
+				Tipo:           "servicios",
+				IDDepartamento: c.IDDepartamento,
+				IDPersona:      uintPtr(c.Departamento.IDDueño),
+				Total:          total,
+				Detalles: []models.DetalleRecibo{{
+					IDServicio: luzSvc.ID, Precio: total, Cantidad: 1, Descripcion: &desc,
+				}},
+			}
+			if err := tx.Omit("Departamento", "Titular").Create(&recibo).Error; err != nil {
+				return err
+			}
+			created++
+		}
+		return nil
+	})
+	if err != nil {
+		http.Redirect(w, r, "/deudas?msg="+urlEscape("Error al generar servicios: "+err.Error()), http.StatusFound)
+		return
+	}
+
+	http.Redirect(w, r, "/deudas?mes="+periodo+"&msg="+urlEscape(fmt.Sprintf("Se generaron %d recibos de servicios para %s (común $ %.2f)", created, periodo, comun)), http.StatusFound)
 }
 
 // calcDeuda aplica el coeficiente (en %) sobre los totales y redondea a 2 decimales.

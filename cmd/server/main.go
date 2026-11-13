@@ -88,6 +88,7 @@ func main() {
 				r.Group(func(r chi.Router) {
 					r.Use(middleware.RequireRole("administrador", "receptor"))
 					r.Post("/", app.DeudaGenerar)
+					r.Post("/servicios", app.ServicioGenerar)
 				})
 			})
 		})
