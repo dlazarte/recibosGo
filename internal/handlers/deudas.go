@@ -105,7 +105,7 @@ func (a *App) DeudasList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var depts []models.Departamento
-	a.DB.Order("numero+0, nombre ASC").Find(&depts)
+	a.DB.Order(ordenUnidades).Find(&depts)
 	var personas []models.Persona
 	a.DB.Order("nombre ASC").Find(&personas)
 

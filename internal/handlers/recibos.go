@@ -96,7 +96,7 @@ func (a *App) RecibosList(w http.ResponseWriter, r *http.Request) {
 		Find(&recibos)
 
 	var depts []models.Departamento
-	a.DB.Order("numero+0, nombre ASC").Find(&depts)
+	a.DB.Order(ordenUnidades).Find(&depts)
 
 	data := RecibosData{
 		Recibos:       recibos,

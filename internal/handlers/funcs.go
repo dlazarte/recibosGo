@@ -8,6 +8,9 @@ import (
 	"recibosgo/internal/models"
 )
 
+// Orden natural por número legacy y nombre; compatible con PostgreSQL.
+const ordenUnidades = "CAST(NULLIF(regexp_replace(numero, '[^0-9]', '', 'g'), '') AS INTEGER) NULLS LAST, nombre ASC"
+
 func FmtMoney(v float64) string {
 	return fmt.Sprintf("%.2f", v)
 }

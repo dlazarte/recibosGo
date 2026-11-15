@@ -31,7 +31,7 @@ func (a *App) DepartamentosList(w http.ResponseWriter, r *http.Request) {
 
 	var depts []models.Departamento
 	q.Preload("Dueño").
-		Order("numero+0, nombre ASC").
+		Order(ordenUnidades).
 		Offset((paginaActual(r) - 1) * perPage).
 		Limit(perPage).
 		Find(&depts)
