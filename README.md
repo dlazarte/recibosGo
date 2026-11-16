@@ -97,9 +97,25 @@ Abrir [http://localhost:8090](http://localhost:8090) e iniciar sesión con `ADMI
 
 ### 5. Tests
 
+Los tests de integración usan PostgreSQL. Crear una base de test una sola vez:
+
+```bash
+docker exec recibosgo-db psql -U recibosgo -d postgres -c "CREATE DATABASE recibosgo_test OWNER recibosgo;"
+```
+
+Ejecutar:
+
 ```bash
 go test ./...
 ```
+
+Si la base de test está en otra URL:
+
+```bash
+TEST_DATABASE_URL="postgres://usuario:clave@localhost:5432/recibosgo_test?sslmode=disable" go test ./...
+```
+
+Cubren autenticación, matriz de roles, IDOR, SQLi/XSS, filtrado de recibos por propietario/inquilino y cálculo de expensas/servicios.
 
 ## 🏗️ Estructura del Proyecto
 

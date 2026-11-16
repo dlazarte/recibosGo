@@ -320,6 +320,7 @@ func uintPtr(v uint) *uint {
 }
 
 func (a *App) ReciboDetail(w http.ResponseWriter, r *http.Request) {
+	user, _ := middleware.UserFromContext(r.Context())
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, "id inválido", http.StatusBadRequest)
@@ -330,6 +331,10 @@ func (a *App) ReciboDetail(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "recibo no encontrado", http.StatusNotFound)
 		return
 	}
+	if !a.canAccessRecibo(user, &recibo) {
+		http.Error(w, "Acceso denegado", http.StatusForbidden)
+		return
+	}
 	if r.Header.Get("HX-Request") == "true" {
 		a.renderFrag(w, "recibo_detalle", PageData{Data: ReciboDetailData{Recibo: recibo}})
 		return
@@ -338,6 +343,7 @@ func (a *App) ReciboDetail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) ReciboPagar(w http.ResponseWriter, r *http.Request) {
+	user, _ := middleware.UserFromContext(r.Context())
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, "id inválido", http.StatusBadRequest)
@@ -348,8 +354,12 @@ func (a *App) ReciboPagar(w http.ResponseWriter, r *http.Request) {
 		forma = "E"
 	}
 	var recibo models.Recibo
-	if a.DB.Preload("Detalles").First(&recibo, id).Error != nil {
+	if a.DB.Preload("Departamento").Preload("Detalles").First(&recibo, id).Error != nil {
 		http.Error(w, "recibo no encontrado", http.StatusNotFound)
+		return
+	}
+	if !a.canAccessRecibo(user, &recibo) {
+		http.Error(w, "Acceso denegado", http.StatusForbidden)
 		return
 	}
 	for i := range recibo.Detalles {
@@ -368,6 +378,33 @@ func (a *App) ReciboPagar(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) nextNumeroRecibo(fecha time.Time) string {
 	return nextNumeroRecibo(a.DB, fecha)
+}
+
+// canAccessRecibo: admin/receptor ven todo; dueño/inquilino solo sus unidades.
+func (a *App) canAccessRecibo(user *models.User, recibo *models.Recibo) bool {
+	if user == nil {
+		return false
+	}
+	if user.Role == "administrador" || user.Role == "receptor" {
+		return true
+	}
+	var persona models.Persona
+	if a.DB.Where("email = ?", user.Email).First(&persona).Error != nil {
+		return false
+	}
+	if recibo.IDPersona != nil && *recibo.IDPersona == persona.ID {
+		return true
+	}
+	d := recibo.Departamento
+	if d.ID == 0 {
+		if a.DB.First(&d, recibo.IDDepartamento).Error != nil {
+			return false
+		}
+	}
+	if d.IDDueño == persona.ID {
+		return true
+	}
+	return d.IDInquilino != nil && *d.IDInquilino == persona.ID
 }
 
 func nextNumeroRecibo(db *gorm.DB, fecha time.Time) string {
