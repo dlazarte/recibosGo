@@ -5,6 +5,7 @@
 
 /* --- CSS Custom Properties (Design Tokens) --- */
 :root {
+  color-scheme: light dark;
   --c-primary: #1e40af;
   --c-primary-hover: #1e3a8a;
   --c-primary-light: #dbeafe;
@@ -29,6 +30,13 @@
   --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
   --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
   --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+}
+
+:root:has(> head > meta[name="color-scheme"][content="dark"]) {
+  color-scheme: dark;
+}
+:root:has(> head > meta[name="color-scheme"][content="light"]) {
+  color-scheme: light;
 }
 
 .dark {
@@ -791,7 +799,16 @@ tfoot td {
   }
 }
 
-/* --- Scrollbar (dark mode) --- */
-.dark ::-webkit-scrollbar { width: 8px; }
-.dark ::-webkit-scrollbar-track { background: var(--c-bg); }
-.dark ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 4px; }
+/* --- Scrollbar (estándar + fallback WebKit) --- */
+html {
+  --scrollbar-thumb: var(--c-border);
+  --scrollbar-track: var(--c-bg);
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-width: thin;
+}
+@supports not (scrollbar-color: auto) {
+  html { scrollbar-width: auto; }
+  html::-webkit-scrollbar { width: 8px; height: 8px; }
+  html::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+  html::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+}

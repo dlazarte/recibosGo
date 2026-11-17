@@ -12,10 +12,10 @@
 
     <form method="post" action="/login">
       <label>Email
-        <input type="email" name="email" required autofocus placeholder="tu@email.com">
+        <input type="email" name="email" required autofocus autocomplete="username" spellcheck="false" placeholder="tu@email.com">
       </label>
       <label>Contraseña
-        <input type="password" name="password" required placeholder="••••••••">
+        <input type="password" name="password" required autocomplete="current-password" placeholder="••••••••">
       </label>
       <div class="check-row">
         <label class="check"><input type="checkbox" name="remember"> Recordarme</label>
