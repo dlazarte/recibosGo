@@ -238,6 +238,75 @@ func TestPagarDesdeLista(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), link) {
 		t.Fatal("el recibo pagado no aparece en pagados")
 	}
+
+	var pagado models.Recibo
+	e.DB.First(&pagado, s.ReciboA1.ID)
+	if pagado.FechaPago == nil {
+		t.Fatal("no se grabó la fecha de pago")
+	}
+	if math.Abs(pagado.MontoPagado-1000) > 0.01 {
+		t.Fatalf("monto pagado = %.2f, quería 1000", pagado.MontoPagado)
+	}
+}
+
+func TestRecargoPorVencimiento(t *testing.T) {
+	e := newTestEnv(t)
+	s := seedScenario(t, e)
+
+	if err := e.DB.Exec(
+		"UPDATE recibo SET fecha_corte = '2020-01-01', total_con_interes = 1200 WHERE id = ?",
+		s.ReciboA1.ID,
+	).Error; err != nil {
+		t.Fatalf("actualizando recibo: %v", err)
+	}
+	var r models.Recibo
+	if err := e.DB.First(&r, s.ReciboA1.ID).Error; err != nil {
+		t.Fatalf("leyendo recibo: %v", err)
+	}
+	if !r.Vencido() {
+		t.Fatal("el recibo debería estar vencido")
+	}
+	if r.MontoPagar() != 1200 {
+		t.Fatalf("monto a pagar = %.2f, quería 1200 (con recargo)", r.MontoPagar())
+	}
+}
+
+func TestHistorialUnidad(t *testing.T) {
+	e := newTestEnv(t)
+	s := seedScenario(t, e)
+
+	// Segundo deudor en la misma unidad (simula cambio de inquilino).
+	otro := e.createRecibo(t, s.DeptoT1.ID, &s.PersonaB.ID, "expensas", "2026-02", 400, []models.DetalleRecibo{
+		{IDServicio: s.ServicioExpensas.ID, Precio: 400, Cantidad: 1},
+	})
+
+	rec := e.request(t, http.MethodGet, fmt.Sprintf("/departamentos/%d/historial", s.DeptoT1.ID), e.sessionCookie(t, s.Admin), nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("historial: status = %d, quería 200", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, s.PersonaT.Nombre) {
+		t.Fatalf("el historial no muestra al inquilino %s", s.PersonaT.Nombre)
+	}
+	if !strings.Contains(body, s.PersonaB.Nombre) {
+		t.Fatalf("el historial no muestra al propietario %s", s.PersonaB.Nombre)
+	}
+	if !strings.Contains(body, fmt.Sprintf("/recibos/%d", otro.ID)) {
+		t.Fatal("el historial no lista el recibo del segundo deudor")
+	}
+}
+
+func TestDashboardDeudasAnteriores(t *testing.T) {
+	e := newTestEnv(t)
+	s := seedScenario(t, e)
+
+	rec := e.request(t, http.MethodGet, "/dashboard", e.sessionCookie(t, s.Admin), nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("dashboard: status = %d, quería 200", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "Deudas de inquilinos anteriores") {
+		t.Fatal("el dashboard no muestra la sección de deudas anteriores")
+	}
 }
 
 func TestGenerarExtraordinarias(t *testing.T) {

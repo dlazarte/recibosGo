@@ -51,6 +51,7 @@ flowchart LR
 | GET | `/` | redirect `/dashboard` | — | — | autenticado |
 | GET | `/dashboard` | `Dashboard` | `dashboard.html` | — | todos |
 | GET | `/departamentos` | `DepartamentosList` | `departamentos.html` | `deptos_table`, `paginador` | admin, dueño, dueno |
+| GET | `/departamentos/{id}/historial` | `DepartamentoHistorial` | `departamento_historial.html` | — | admin, dueño, dueno |
 | POST | `/departamentos` | `DepartamentoCreate` | — | — | admin, dueño, dueno |
 | POST | `/departamentos/{id}` | `DepartamentoUpdate` | — | — | admin, dueño, dueno |
 | GET | `/personas` | `PersonasList` | `titulares.html` | `personas_table` | admin |

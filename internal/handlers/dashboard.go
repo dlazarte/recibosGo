@@ -8,11 +8,14 @@ import (
 )
 
 type DashboardData struct {
-	DeptCount    int64
-	ServCount    int64
-	RecibosCount int64
-	Recibos      []models.Recibo
-	Departamentos []models.Departamento
+	DeptCount        int64
+	ServCount        int64
+	RecibosCount     int64
+	Recibos          []models.Recibo
+	Departamentos    []models.Departamento
+	DeudaPendiente   float64
+	UnidadesConDeuda int64
+	DeudasAnteriores []models.Recibo
 }
 
 func (a *App) Dashboard(w http.ResponseWriter, r *http.Request) {
@@ -28,6 +31,20 @@ func (a *App) Dashboard(w http.ResponseWriter, r *http.Request) {
 		a.DB.Model(&models.Departamento{}).Where("activo = ?", true).Count(&data.DeptCount)
 		a.DB.Model(&models.Servicio{}).Where("activo = ?", true).Count(&data.ServCount)
 		q.Find(&recibos)
+
+		var pendientes []models.Recibo
+		a.DB.Preload("Departamento").Preload("Titular").
+			Where("id NOT IN (SELECT DISTINCT id_recibo FROM detallerecibo WHERE forma_pago <> '')").
+			Order("fecha ASC").Find(&pendientes)
+		unidades := map[uint]bool{}
+		for _, r := range pendientes {
+			data.DeudaPendiente += r.MontoPagar()
+			unidades[r.IDDepartamento] = true
+			if r.IDPersona != nil && *r.IDPersona != r.Departamento.IDDueño && len(data.DeudasAnteriores) < 10 {
+				data.DeudasAnteriores = append(data.DeudasAnteriores, r)
+			}
+		}
+		data.UnidadesConDeuda = int64(len(unidades))
 	} else {
 		// Find departments via persona (v2.1)
 		var persona models.Persona

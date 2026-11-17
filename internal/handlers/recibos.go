@@ -375,6 +375,13 @@ func (a *App) ReciboPagar(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	monto := recibo.MontoPagar()
+	recibo.FechaPago = &models.Fecha{Time: time.Now()}
+	recibo.MontoPagado = monto
+	if err := a.DB.Omit("Departamento", "Titular", "Detalles").Save(&recibo).Error; err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	if back := r.FormValue("volver"); strings.HasPrefix(back, "/") && !strings.HasPrefix(back, "//") {
 		http.Redirect(w, r, back, http.StatusFound)
 		return

@@ -22,7 +22,7 @@
         <td>{{fmtFechaD .Fecha}}</td>
         <td>{{trimNumero .Departamento.Numero}}</td>
         <td>{{.Departamento.Propietario}}</td>
-        <td>$ {{fmtMoney .Total}}</td>
+        <td>$ {{fmtMoney .MontoPagar}}{{if .Vencido}} <span class="badge warn">+20%</span>{{end}}</td>
         <td>{{if .Pagado}}<span class="badge ok">Pagado</span>{{else}}<span class="badge warn">Pendiente</span>{{end}}</td>
         <td>{{.FormaPago}}</td>
         <td><a href="/recibos/{{.ID}}" class="btn ghost sm">Ver</a> <a href="/recibos/{{.ID}}/pdf" class="btn ghost sm" target="_blank">PDF</a></td>

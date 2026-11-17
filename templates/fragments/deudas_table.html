@@ -27,7 +27,7 @@
         <td>$ {{fmtMoney .SatCisi}}</td>
         <td>$ {{fmtMoney .Luz}}</td>
         <td>$ {{fmtMoney .Extraordinarias}}</td>
-        <td>$ {{fmtMoney .Recibo.Total}}</td>
+        <td>$ {{fmtMoney .Recibo.MontoPagar}}{{if .Recibo.Vencido}} <span class="badge warn">+20%</span>{{end}}</td>
         <td>{{if .Recibo.Pagado}}<span class="badge ok">Pagado</span>{{else}}<span class="badge warn">Pendiente</span>{{end}}</td>
         <td>
           <a href="/recibos/{{.Recibo.ID}}" class="btn ghost sm">Ver</a>

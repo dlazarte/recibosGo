@@ -28,10 +28,36 @@
       <span class="label">Recibos del mes</span>
     </div>
     <div class="card stat warn-card">
-      <span class="num">$ 0.00</span>
+      <span class="num">$ {{fmtMoney $d.DeudaPendiente}}</span>
       <span class="label">Deuda pendiente</span>
     </div>
+    <div class="card stat warn-card">
+      <span class="num">{{$d.UnidadesConDeuda}}</span>
+      <span class="label">Unidades con deuda</span>
+    </div>
   </div>
+
+  {{if $d.DeudasAnteriores}}
+  <h2>Deudas de inquilinos anteriores</h2>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Unidad</th><th>Deudor</th><th>Período</th><th>Monto</th><th></th></tr>
+    </thead>
+    <tbody>
+    {{range $d.DeudasAnteriores}}
+      <tr>
+        <td>{{.Departamento.Nombre}}</td>
+        <td>{{if .Titular}}{{.Titular.Nombre}}{{else}}—{{end}}</td>
+        <td>{{.Periodo}}</td>
+        <td>$ {{fmtMoney .MontoPagar}}</td>
+        <td><a href="/recibos/{{.ID}}" class="btn ghost sm">Ver</a></td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{end}}
   {{else}}
     {{if $d.Departamentos}}
     <div class="cards">

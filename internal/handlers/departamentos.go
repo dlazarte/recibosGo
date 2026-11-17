@@ -2,10 +2,24 @@ package handlers
 
 import (
 	"net/http"
+	"sort"
 	"strconv"
 
 	"recibosgo/internal/models"
 )
+
+type HistorialGrupo struct {
+	Persona   *models.Persona
+	Recibos   []models.Recibo
+	Total     float64
+	Pagado    float64
+	Pendiente float64
+}
+
+type HistorialData struct {
+	Departamento models.Departamento
+	Grupos       []HistorialGrupo
+}
 
 type DeptData struct {
 	Departamentos []models.Departamento
@@ -131,4 +145,61 @@ func (a *App) DepartamentoUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/departamentos?msg="+urlEscape("Departamento actualizado"), http.StatusFound)
+}
+
+// DepartamentoHistorial muestra los recibos de una unidad agrupados por deudor.
+func (a *App) DepartamentoHistorial(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "id inválido", http.StatusBadRequest)
+		return
+	}
+	var d models.Departamento
+	if a.DB.Preload("Dueño").Preload("Inquilino").First(&d, id).Error != nil {
+		http.Error(w, "no encontrado", http.StatusNotFound)
+		return
+	}
+	var recibos []models.Recibo
+	a.DB.Preload("Titular").Preload("Detalles.Servicio").
+		Where("id_departamento = ?", id).
+		Order("periodo DESC, id DESC").
+		Find(&recibos)
+
+	grupos := map[uint]*HistorialGrupo{}
+	var orden []uint
+	for _, rec := range recibos {
+		key := uint(0)
+		if rec.IDPersona != nil {
+			key = *rec.IDPersona
+		}
+		g, ok := grupos[key]
+		if !ok {
+			g = &HistorialGrupo{Persona: rec.Titular}
+			grupos[key] = g
+			orden = append(orden, key)
+		}
+		g.Recibos = append(g.Recibos, rec)
+		g.Total += rec.Total
+		if rec.Pagado() {
+			g.Pagado += rec.MontoPagar()
+		} else {
+			g.Pendiente += rec.MontoPagar()
+		}
+	}
+	sort.Slice(orden, func(i, j int) bool {
+		ga, gb := grupos[orden[i]], grupos[orden[j]]
+		if ga.Persona == nil {
+			return false
+		}
+		if gb.Persona == nil {
+			return true
+		}
+		return ga.Persona.Nombre < gb.Persona.Nombre
+	})
+
+	data := HistorialData{Departamento: d}
+	for _, key := range orden {
+		data.Grupos = append(data.Grupos, *grupos[key])
+	}
+	a.render(w, r, "departamento_historial", PageData{Data: data})
 }

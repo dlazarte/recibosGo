@@ -1,0 +1,55 @@
+{{define "title"}}Historial {{.Data.Departamento.Nombre}} - RecibosGo{{end}}
+{{define "content"}}
+{{$d := .Data}}
+<div class="page">
+  <div class="row-between">
+    <h1>Historial — {{$d.Departamento.Nombre}}</h1>
+    <a class="btn secondary" href="/departamentos">Volver</a>
+  </div>
+
+  <div class="card">
+    <p>
+      Dueño actual:
+      {{if $d.Departamento.Dueño}}<strong>{{$d.Departamento.Dueño.Nombre}}</strong>{{else}}sin asignar{{end}}
+      {{if $d.Departamento.Inquilino}} · Inquilino actual: <strong>{{$d.Departamento.Inquilino.Nombre}}</strong>{{end}}
+    </p>
+  </div>
+
+  {{range $d.Grupos}}
+  <div class="card">
+    <div class="row-between">
+      <h2>{{if .Persona}}{{.Persona.Nombre}}{{else}}Sin titular{{end}}</h2>
+      <span class="subtitle">Total $ {{fmtMoney .Total}} · Pagado $ {{fmtMoney .Pagado}} · Pendiente $ {{fmtMoney .Pendiente}}</span>
+    </div>
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Período</th>
+          <th>Tipo</th>
+          <th>Monto</th>
+          <th>Estado</th>
+          <th>Pago</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {{range .Recibos}}
+        <tr>
+          <td>{{if .Periodo}}{{.Periodo}}{{else}}{{fmtFechaD .Fecha}}{{end}}</td>
+          <td>{{if .Tipo}}{{.Tipo}}{{else}}manual{{end}}</td>
+          <td>$ {{fmtMoney .MontoPagar}}{{if .Vencido}} <span class="badge warn">+20%</span>{{end}}</td>
+          <td>{{if .Pagado}}<span class="badge ok">Pagado</span>{{else}}<span class="badge warn">Pendiente</span>{{end}}</td>
+          <td>{{if .FechaPago}}{{.FechaPago.String}}{{end}}</td>
+          <td><a href="/recibos/{{.ID}}" class="btn ghost sm">Ver</a></td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  {{else}}
+  <div class="card"><p class="notice">No hay recibos para esta unidad.</p></div>
+  {{end}}
+</div>
+{{end}}

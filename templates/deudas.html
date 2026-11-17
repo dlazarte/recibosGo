@@ -87,6 +87,7 @@
       <option value="pagado" {{if eq $d.FiltroEstado "pagado"}}selected{{end}}>Pagados</option>
       <option value="todos" {{if eq $d.FiltroEstado "todos"}}selected{{end}}>Todos</option>
     </select>
+    <label class="check"><input type="checkbox" name="anteriores" value="1" {{if $d.FiltroAnteriores}}checked{{end}}> Solo inquilinos anteriores</label>
     <button type="submit" class="btn">Filtrar</button>
   </form>
 

@@ -11,7 +11,11 @@
     <div style="flex:1; text-align:right;">
       <p><strong>Estado:</strong> {{if $r.Pagado}}<span class="badge ok">Pagado</span>{{else}}<span class="badge warn">Pendiente</span>{{end}}</p>
       {{if $r.FormaPago}}<p><strong>Forma de pago:</strong> {{$r.FormaPago}}</p>{{end}}
+      {{if $r.FechaCorte}}<p><strong>Vence:</strong> {{$r.FechaCorte.String}}{{if $r.Vencido}} <span class="badge warn">vencido +20%</span>{{end}}</p>{{end}}
       <p style="font-size:1.1rem;"><strong>Total:</strong> $ {{fmtMoney $r.Total}}</p>
+      <p style="font-size:1.1rem;"><strong>A pagar:</strong> $ {{fmtMoney $r.MontoPagar}}</p>
+      {{if $r.FechaPago}}<p><strong>Pagado el:</strong> {{$r.FechaPago.String}}</p>{{end}}
+      {{if $r.MontoPagado}}<p><strong>Monto pagado:</strong> $ {{fmtMoney $r.MontoPagado}}</p>{{end}}
     </div>
   </div>
   {{if $r.Observaciones}}<p style="margin-top:0.75rem;"><strong>Observaciones:</strong> {{$r.Observaciones}}</p>{{end}}

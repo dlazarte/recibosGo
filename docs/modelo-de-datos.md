@@ -43,6 +43,10 @@ erDiagram
         int id_persona FK "nullable, titular al generar"
         string observaciones
         float total
+        float total_con_interes "monto con recargo por vencimiento"
+        date fecha_corte "vencimiento del recargo"
+        date fecha_pago "fecha real del pago"
+        float monto_pagado "monto efectivamente cobrado"
     }
     servicio {
         int id PK

@@ -53,6 +53,8 @@
 | `departamento` | select | no | Filtro por unidad. |
 | `persona` | select | no | Filtro por titular (dueño o inquilino). |
 | `mes` | month | no | Filtro por período. |
+| `estado` | select | no | `pendiente` (default), `pagado`, `todos`. |
+| `anteriores` | checkbox | no | Solo deudas imputadas a alguien distinto del dueño actual (inquilinos anteriores). |
 
 ## 4. Cálculos
 
@@ -77,6 +79,12 @@
 - `monto = total * coeficiente / 100`
 - Se imputa **siempre al propietario** de la unidad, nunca al inquilino.
 - Se crea un `recibo` por unidad con un `detallerecibo` de `Expensas Extraordinarias. Pago Final`.
+
+**Recargo por vencimiento**
+
+- `Total` = monto base; `TotalConInteres` = `Total * 1.20`; `FechaCorte` = día 15 del período.
+- Al consultar, `MontoPagar()` devuelve `MontoPagado` si ya se pagó, `TotalConInteres` si venció, o `Total`.
+- Al pagar se graban `FechaPago` (fecha real) y `MontoPagado` (monto aplicado).
 
 ## 5. Acciones y navegación
 
@@ -104,7 +112,7 @@ flowchart LR
 
 ## 7. Estado actual vs objetivo
 
-- **Actual (v2.2):** generación de expensas por coeficiente, generación de servicios EDET con servicio común y consulta por unidad/persona.
+- **Actual (v2.2):** generación de expensas por coeficiente, generación de servicios EDET con servicio común, generación de extraordinarias al propietario, recargo por vencimiento e historial de unidad.
 - **Objetivo (reemplazo de la planilla):** cargar los importes en el sistema y generar los registros de deuda por unidad sin usar `ExpensasMP2026.xlsx` ni `LuzMP2026.xlsx`.
 
 ## 8. Pendientes / notas

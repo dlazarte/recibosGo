@@ -110,6 +110,26 @@ func migrateV21(db *gorm.DB) {
 			log.Printf("error creando consumo_luz: %v", err)
 		}
 	}
+	if !m.HasColumn("recibo", "fecha_corte") {
+		if err := m.AddColumn(&models.Recibo{}, "FechaCorte"); err != nil {
+			db.Exec("ALTER TABLE recibo ADD COLUMN fecha_corte DATE")
+		}
+	}
+	if !m.HasColumn("recibo", "total_con_interes") {
+		if err := m.AddColumn(&models.Recibo{}, "TotalConInteres"); err != nil {
+			db.Exec("ALTER TABLE recibo ADD COLUMN total_con_interes DOUBLE PRECISION DEFAULT 0")
+		}
+	}
+	if !m.HasColumn("recibo", "fecha_pago") {
+		if err := m.AddColumn(&models.Recibo{}, "FechaPago"); err != nil {
+			db.Exec("ALTER TABLE recibo ADD COLUMN fecha_pago DATE")
+		}
+	}
+	if !m.HasColumn("recibo", "monto_pagado") {
+		if err := m.AddColumn(&models.Recibo{}, "MontoPagado"); err != nil {
+			db.Exec("ALTER TABLE recibo ADD COLUMN monto_pagado DOUBLE PRECISION DEFAULT 0")
+		}
+	}
 }
 
 func seedAdmin(db *gorm.DB, cfg config.Config) {

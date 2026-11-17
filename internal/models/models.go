@@ -109,18 +109,22 @@ func (f Fecha) GormDataType() string { return "date" }
 func (f Fecha) String() string { return f.Time.Format("02/01/2006") }
 
 type Recibo struct {
-	ID             uint `gorm:"primaryKey"`
-	NumeroRecibo   string
-	Fecha          Fecha
-	Periodo        string `gorm:"default:''"` // YYYY-MM de la deuda generada; vacío en recibos manuales
-	Tipo           string `gorm:"default:''"` // expensas | servicios
-	IDDepartamento uint
-	IDPersona      *uint // titular al generar (nullable, NULL en legacy)
-	Observaciones  *string
-	Total          float64
-	Departamento   Departamento    `gorm:"foreignKey:IDDepartamento"`
-	Titular        *Persona        `gorm:"foreignKey:IDPersona"`
-	Detalles       []DetalleRecibo `gorm:"foreignKey:IDRecibo"`
+	ID              uint `gorm:"primaryKey"`
+	NumeroRecibo    string
+	Fecha           Fecha
+	Periodo         string `gorm:"default:''"` // YYYY-MM de la deuda generada; vacío en recibos manuales
+	Tipo            string `gorm:"default:''"` // expensas | servicios
+	IDDepartamento  uint
+	IDPersona       *uint // titular al generar (nullable, NULL en legacy)
+	Observaciones   *string
+	Total           float64
+	FechaCorte      *Fecha
+	TotalConInteres float64
+	FechaPago       *Fecha
+	MontoPagado     float64
+	Departamento    Departamento    `gorm:"foreignKey:IDDepartamento"`
+	Titular         *Persona        `gorm:"foreignKey:IDPersona"`
+	Detalles        []DetalleRecibo `gorm:"foreignKey:IDRecibo"`
 }
 
 func (Recibo) TableName() string { return "recibo" }
@@ -182,4 +186,21 @@ func (r Recibo) FormaPago() string {
 		return "Transferencia"
 	}
 	return ""
+}
+
+// Vencido indica si el recibo superó la fecha de corte y no fue pagado.
+func (r Recibo) Vencido() bool {
+	return r.FechaPago == nil && r.FechaCorte != nil && !r.FechaCorte.Time.IsZero() && time.Now().After(r.FechaCorte.Time)
+}
+
+// MontoPagar devuelve lo que corresponde cobrar: lo pagado si ya se pagó,
+// el monto con recargo si está vencido, o el total base.
+func (r Recibo) MontoPagar() float64 {
+	if r.FechaPago != nil && !r.FechaPago.Time.IsZero() && r.MontoPagado > 0 {
+		return r.MontoPagado
+	}
+	if r.Vencido() && r.TotalConInteres > 0 {
+		return r.TotalConInteres
+	}
+	return r.Total
 }

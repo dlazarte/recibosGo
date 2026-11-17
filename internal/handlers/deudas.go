@@ -19,6 +19,7 @@ const (
 	servicioSatCisi         = "Servicios. Pago Final"
 	servicioLuz             = "Luz (EDET)"
 	servicioExtraordinarias = "Expensas Extraordinarias. Pago Final"
+	tasaInteres             = 0.20
 )
 
 type DeudaItem struct {
@@ -30,18 +31,19 @@ type DeudaItem struct {
 }
 
 type DeudasData struct {
-	Items         []DeudaItem
-	Departamentos []models.Departamento
-	Personas      []models.Persona
-	FiltroDepto   string
-	FiltroPersona string
-	FiltroMes     string
-	FiltroEstado  string
-	Periodo       string
-	Lecturas      int64
-	Msg           string
-	Volver        string
-	Paginado      Pagination
+	Items            []DeudaItem
+	Departamentos    []models.Departamento
+	Personas         []models.Persona
+	FiltroDepto      string
+	FiltroPersona    string
+	FiltroMes        string
+	FiltroEstado     string
+	Periodo          string
+	Lecturas         int64
+	Msg              string
+	Volver           string
+	FiltroAnteriores bool
+	Paginado         Pagination
 }
 
 // DeudasList muestra los registros de deuda por unidad o persona.
@@ -95,6 +97,10 @@ func (a *App) DeudasList(w http.ResponseWriter, r *http.Request) {
 	} else if estado == "pendiente" {
 		q = q.Where("id NOT IN (SELECT DISTINCT id_recibo FROM detallerecibo WHERE forma_pago <> '')")
 	}
+	anteriores := r.URL.Query().Get("anteriores") == "1"
+	if anteriores {
+		q = q.Where("id_persona IS NOT NULL AND id_persona <> (SELECT id_dueño FROM departamento WHERE id = recibo.id_departamento)")
+	}
 
 	var total int64
 	q.Count(&total)
@@ -138,18 +144,19 @@ func (a *App) DeudasList(w http.ResponseWriter, r *http.Request) {
 	a.DB.Model(&models.ConsumoLuz{}).Where("periodo = ?", periodo).Count(&lecturas)
 
 	data := DeudasData{
-		Items:         items,
-		Departamentos: depts,
-		Personas:      personas,
-		FiltroDepto:   depID,
-		FiltroPersona: personaID,
-		FiltroMes:     mes,
-		FiltroEstado:  estado,
-		Periodo:       periodo,
-		Lecturas:      lecturas,
-		Msg:           r.URL.Query().Get("msg"),
-		Volver:        r.URL.RequestURI(),
-		Paginado:      paginar(r, total, "#deudas-table"),
+		Items:            items,
+		Departamentos:    depts,
+		Personas:         personas,
+		FiltroDepto:      depID,
+		FiltroPersona:    personaID,
+		FiltroMes:        mes,
+		FiltroEstado:     estado,
+		Periodo:          periodo,
+		Lecturas:         lecturas,
+		Msg:              r.URL.Query().Get("msg"),
+		Volver:           r.URL.RequestURI(),
+		FiltroAnteriores: anteriores,
+		Paginado:         paginar(r, total, "#deudas-table"),
 	}
 	if r.Header.Get("HX-Request") == "true" {
 		a.renderFrag(w, "deudas_table", PageData{Data: data})
@@ -214,15 +221,18 @@ func (a *App) DeudaGenerar(w http.ResponseWriter, r *http.Request) {
 					IDServicio: satSvc.ID, Precio: sat, Cantidad: 1, Descripcion: &nombre,
 				})
 			}
+			total := exp + sat
 			recibo := models.Recibo{
-				NumeroRecibo:   nextNumeroRecibo(tx, start),
-				Fecha:          models.Fecha{Time: start},
-				Periodo:        periodo,
-				Tipo:           "expensas",
-				IDDepartamento: d.ID,
-				IDPersona:      personaDeudora(d, false),
-				Total:          exp + sat,
-				Detalles:       detalles,
+				NumeroRecibo:    nextNumeroRecibo(tx, start),
+				Fecha:           models.Fecha{Time: start},
+				Periodo:         periodo,
+				Tipo:            "expensas",
+				IDDepartamento:  d.ID,
+				IDPersona:       personaDeudora(d, false),
+				Total:           total,
+				FechaCorte:      corteDe(start),
+				TotalConInteres: round2(total * (1 + tasaInteres)),
+				Detalles:        detalles,
 			}
 			if err := tx.Create(&recibo).Error; err != nil {
 				return err
@@ -295,13 +305,15 @@ func (a *App) ServicioGenerar(w http.ResponseWriter, r *http.Request) {
 			}
 			desc := "Luz EDET " + periodo
 			recibo := models.Recibo{
-				NumeroRecibo:   nextNumeroRecibo(tx, start),
-				Fecha:          models.Fecha{Time: start},
-				Periodo:        periodo,
-				Tipo:           "servicios",
-				IDDepartamento: c.IDDepartamento,
-				IDPersona:      personaDeudora(c.Departamento, false),
-				Total:          total,
+				NumeroRecibo:    nextNumeroRecibo(tx, start),
+				Fecha:           models.Fecha{Time: start},
+				Periodo:         periodo,
+				Tipo:            "servicios",
+				IDDepartamento:  c.IDDepartamento,
+				IDPersona:       personaDeudora(c.Departamento, false),
+				Total:           total,
+				FechaCorte:      corteDe(start),
+				TotalConInteres: round2(total * (1 + tasaInteres)),
 				Detalles: []models.DetalleRecibo{{
 					IDServicio: luzSvc.ID, Precio: total, Cantidad: 1, Descripcion: &desc,
 				}},
@@ -364,13 +376,15 @@ func (a *App) ExtraordinariaGenerar(w http.ResponseWriter, r *http.Request) {
 			}
 			nombre := d.Nombre
 			recibo := models.Recibo{
-				NumeroRecibo:   nextNumeroRecibo(tx, start),
-				Fecha:          models.Fecha{Time: start},
-				Periodo:        periodo,
-				Tipo:           "extraordinarias",
-				IDDepartamento: d.ID,
-				IDPersona:      personaDeudora(d, true),
-				Total:          monto,
+				NumeroRecibo:    nextNumeroRecibo(tx, start),
+				Fecha:           models.Fecha{Time: start},
+				Periodo:         periodo,
+				Tipo:            "extraordinarias",
+				IDDepartamento:  d.ID,
+				IDPersona:       personaDeudora(d, true),
+				Total:           monto,
+				FechaCorte:      corteDe(start),
+				TotalConInteres: round2(monto * (1 + tasaInteres)),
 				Detalles: []models.DetalleRecibo{{
 					IDServicio: svc.ID, Precio: monto, Cantidad: 1, Descripcion: &nombre,
 				}},
@@ -405,6 +419,12 @@ func calcDeuda(totalExpensas, totalSatCisi, coeficiente float64) (float64, float
 
 func round2(v float64) float64 {
 	return math.Round(v*100) / 100
+}
+
+// corteDe devuelve el día 15 del período (fecha de corte para el recargo).
+func corteDe(start time.Time) *models.Fecha {
+	d := time.Date(start.Year(), start.Month(), 15, 0, 0, 0, 0, start.Location())
+	return &models.Fecha{Time: d}
 }
 
 func (a *App) findOrCreateServicio(nombre string) models.Servicio {

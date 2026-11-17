@@ -41,6 +41,7 @@ func NewRouter(app *handlers.App, auth *middleware.AppCtx, root string) *chi.Mux
 			r.Use(middleware.RequireRole("administrador", "dueño", "dueno"))
 			r.Route("/departamentos", func(r chi.Router) {
 				r.Get("/", app.DepartamentosList)
+				r.Get("/{id}/historial", app.DepartamentoHistorial)
 				r.Group(func(r chi.Router) {
 					r.Use(middleware.RequireRole("administrador"))
 					r.Post("/", app.DepartamentoCreate)
@@ -107,7 +108,7 @@ func LoadTemplates(root string) (map[string]*template.Template, error) {
 		},
 	}
 	pages := []string{
-		"login", "dashboard", "departamentos", "servicios", "titulares",
+		"login", "dashboard", "departamentos", "departamento_historial", "servicios", "titulares",
 		"recibos_list", "recibo_create", "recibo_detail", "reportes", "deudas",
 	}
 	fragments := []string{
