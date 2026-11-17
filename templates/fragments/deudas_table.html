@@ -27,7 +27,20 @@
         <td>$ {{fmtMoney .Luz}}</td>
         <td>$ {{fmtMoney .Recibo.Total}}</td>
         <td>{{if .Recibo.Pagado}}<span class="badge ok">Pagado</span>{{else}}<span class="badge warn">Pendiente</span>{{end}}</td>
-        <td><a href="/recibos/{{.Recibo.ID}}" class="btn ghost sm">Ver</a></td>
+        <td>
+          <a href="/recibos/{{.Recibo.ID}}" class="btn ghost sm">Ver</a>
+          {{if not .Recibo.Pagado}}
+          <form method="post" action="/recibos/{{.Recibo.ID}}/pagar" class="inline"
+                onsubmit="return confirm('¿Confirmar pago de esta deuda?');">
+            <select name="forma_pago">
+              <option value="E">Efectivo</option>
+              <option value="T">Transferencia</option>
+            </select>
+            <button type="submit" class="btn sm">Pagar</button>
+            <input type="hidden" name="volver" value="{{$d.Volver}}">
+          </form>
+          {{end}}
+        </td>
       </tr>
     {{else}}
       <tr><td colspan="9" class="empty">No hay registros de deuda para los filtros seleccionados.</td></tr>

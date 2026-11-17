@@ -66,6 +66,11 @@
       {{end}}
     </select>
     <input type="month" name="mes" value="{{$d.FiltroMes}}">
+    <select name="estado">
+      <option value="pendiente" {{if eq $d.FiltroEstado "pendiente"}}selected{{end}}>Pendientes</option>
+      <option value="pagado" {{if eq $d.FiltroEstado "pagado"}}selected{{end}}>Pagados</option>
+      <option value="todos" {{if eq $d.FiltroEstado "todos"}}selected{{end}}>Todos</option>
+    </select>
     <button type="submit" class="btn">Filtrar</button>
   </form>
 

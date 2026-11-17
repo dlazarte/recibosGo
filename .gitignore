@@ -10,6 +10,10 @@ recibos/
 # Dependencias
 .opencode/node_modules/
 
+# Skills de agentes instalados localmente
+.agents/
+skills-lock.json
+
 # Sistema / editor
 .DS_Store
 *.swp

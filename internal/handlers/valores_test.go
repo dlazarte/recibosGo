@@ -1,6 +1,7 @@
 package handlers_test
 
 import (
+	"fmt"
 	"math"
 	"net/http"
 	"net/url"
@@ -165,5 +166,55 @@ func TestFiltradoRecibosPorRol(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestPagarDesdeLista(t *testing.T) {
+	e := newTestEnv(t)
+	s := seedScenario(t, e)
+	admin := e.sessionCookie(t, s.Admin)
+	link := fmt.Sprintf("/recibos/%d", s.ReciboA1.ID)
+
+	// Por defecto /deudas muestra pendientes.
+	rec := e.request(t, http.MethodGet, "/deudas", admin, nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET /deudas: status = %d, quería 200", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), link) {
+		t.Fatal("la deuda pendiente no aparece por defecto")
+	}
+
+	// Pagar A1 desde la lista, volviendo a /deudas.
+	rec = e.request(t, http.MethodPost, fmt.Sprintf("/recibos/%d/pagar", s.ReciboA1.ID), admin, url.Values{
+		"forma_pago": {"T"},
+		"volver":     {"/deudas?estado=pendiente"},
+	})
+	if rec.Code != http.StatusFound {
+		t.Fatalf("pagar: status = %d, quería 302", rec.Code)
+	}
+	if loc := rec.Header().Get("Location"); loc != "/deudas?estado=pendiente" {
+		t.Fatalf("redirect = %q, quería /deudas?estado=pendiente", loc)
+	}
+
+	// Quedó pagado.
+	var detalles []models.DetalleRecibo
+	e.DB.Where("id_recibo = ?", s.ReciboA1.ID).Find(&detalles)
+	if len(detalles) == 0 {
+		t.Fatal("el recibo no tiene detalles")
+	}
+	for _, d := range detalles {
+		if d.FormaPago != "T" {
+			t.Fatalf("forma_pago = %q, quería T", d.FormaPago)
+		}
+	}
+
+	// Ya no aparece en pendientes; sí en pagados.
+	rec = e.request(t, http.MethodGet, "/deudas?estado=pendiente", admin, nil)
+	if strings.Contains(rec.Body.String(), link) {
+		t.Fatal("el recibo pagado sigue en pendientes")
+	}
+	rec = e.request(t, http.MethodGet, "/deudas?estado=pagado", admin, nil)
+	if !strings.Contains(rec.Body.String(), link) {
+		t.Fatal("el recibo pagado no aparece en pagados")
 	}
 }

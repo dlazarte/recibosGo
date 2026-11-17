@@ -34,9 +34,11 @@ type DeudasData struct {
 	FiltroDepto   string
 	FiltroPersona string
 	FiltroMes     string
+	FiltroEstado  string
 	Periodo       string
 	Lecturas      int64
 	Msg           string
+	Volver        string
 	Paginado      Pagination
 }
 
@@ -47,6 +49,10 @@ func (a *App) DeudasList(w http.ResponseWriter, r *http.Request) {
 	depID := r.URL.Query().Get("departamento")
 	personaID := r.URL.Query().Get("persona")
 	mes := r.URL.Query().Get("mes")
+	estado := r.URL.Query().Get("estado")
+	if estado == "" {
+		estado = "pendiente"
+	}
 
 	q := a.DB.Model(&models.Recibo{}).Where("periodo <> ''")
 	if user.Role != "administrador" && user.Role != "receptor" {
@@ -75,6 +81,11 @@ func (a *App) DeudasList(w http.ResponseWriter, r *http.Request) {
 			end := start.AddDate(0, 1, 0)
 			q = q.Where("fecha >= ? AND fecha < ?", start, end)
 		}
+	}
+	if estado == "pagado" {
+		q = q.Where("id IN (SELECT DISTINCT id_recibo FROM detallerecibo WHERE forma_pago <> '')")
+	} else if estado == "pendiente" {
+		q = q.Where("id NOT IN (SELECT DISTINCT id_recibo FROM detallerecibo WHERE forma_pago <> '')")
 	}
 
 	var total int64
@@ -123,9 +134,11 @@ func (a *App) DeudasList(w http.ResponseWriter, r *http.Request) {
 		FiltroDepto:   depID,
 		FiltroPersona: personaID,
 		FiltroMes:     mes,
+		FiltroEstado:  estado,
 		Periodo:       periodo,
 		Lecturas:      lecturas,
 		Msg:           r.URL.Query().Get("msg"),
+		Volver:        r.URL.RequestURI(),
 		Paginado:      paginar(r, total, "#deudas-table"),
 	}
 	if r.Header.Get("HX-Request") == "true" {

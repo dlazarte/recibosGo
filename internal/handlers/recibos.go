@@ -369,6 +369,10 @@ func (a *App) ReciboPagar(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if back := r.FormValue("volver"); strings.HasPrefix(back, "/") && !strings.HasPrefix(back, "//") {
+		http.Redirect(w, r, back, http.StatusFound)
+		return
+	}
 	if r.Header.Get("HX-Request") == "true" {
 		a.renderFrag(w, "recibo_detalle", PageData{Data: ReciboDetailData{Recibo: recibo}})
 		return
