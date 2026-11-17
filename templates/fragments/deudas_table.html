@@ -11,6 +11,7 @@
         <th>Expensas</th>
         <th>SAT + CISI</th>
         <th>Luz</th>
+        <th>Extraord.</th>
         <th>Total</th>
         <th>Estado</th>
         <th></th>
@@ -25,6 +26,7 @@
         <td>$ {{fmtMoney .Expensas}}</td>
         <td>$ {{fmtMoney .SatCisi}}</td>
         <td>$ {{fmtMoney .Luz}}</td>
+        <td>$ {{fmtMoney .Extraordinarias}}</td>
         <td>$ {{fmtMoney .Recibo.Total}}</td>
         <td>{{if .Recibo.Pagado}}<span class="badge ok">Pagado</span>{{else}}<span class="badge warn">Pendiente</span>{{end}}</td>
         <td>
@@ -43,7 +45,7 @@
         </td>
       </tr>
     {{else}}
-      <tr><td colspan="9" class="empty">No hay registros de deuda para los filtros seleccionados.</td></tr>
+      <tr><td colspan="10" class="empty">No hay registros de deuda para los filtros seleccionados.</td></tr>
     {{end}}
     </tbody>
   </table>

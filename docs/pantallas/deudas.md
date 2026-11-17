@@ -4,12 +4,12 @@
 
 | Campo | Valor |
 |---|---|
-| Ruta | `GET /deudas`, `POST /deudas`, `POST /deudas/servicios` |
-| Handler | `handlers.DeudasList`, `handlers.DeudaGenerar`, `handlers.ServicioGenerar` (`internal/handlers/deudas.go`) |
+| Ruta | `GET /deudas`, `POST /deudas`, `POST /deudas/servicios`, `POST /deudas/extraordinarias` |
+| Handler | `handlers.DeudasList`, `handlers.DeudaGenerar`, `handlers.ServicioGenerar`, `handlers.ExtraordinariaGenerar` (`internal/handlers/deudas.go`) |
 | Template | `templates/deudas.html` |
 | Fragmentos HTMX | `templates/fragments/deudas_table.html`, `paginador.html` |
 | Roles | GET: todos los autenticados (filtrado por rol). POST: `administrador`, `receptor` |
-| Propósito | Generar la deuda mensual por unidad (expensas + SAT/CISI y servicios EDET) y consultar los registros por unidad o persona. |
+| Propósito | Generar la deuda mensual por unidad (expensas + SAT/CISI, servicios EDET y expensas extraordinarias) y consultar los registros por unidad o persona. |
 | Acceso | autenticado |
 
 ## 2. Datos involucrados
@@ -39,6 +39,13 @@
 | `total_factura` | number | sí | Importe total de la factura EDET. |
 | `precio_kw` | number | sí | Precio del kW del período. |
 
+**Generar expensas extraordinarias**
+
+| Campo | Tipo | Obligatorio | Notas |
+|---|---|---|---|
+| `periodo` | month | sí | `AAAA-MM`; evita duplicados (`tipo = 'extraordinarias'`). |
+| `total` | number | sí | Total a dividir por coeficiente. Se imputa **siempre al propietario**, nunca al inquilino. |
+
 **Filtros de consulta**
 
 | Campo | Tipo | Obligatorio | Notas |
@@ -53,6 +60,7 @@
 
 - `monto_expensas = total_expensas * coeficiente / 100`
 - `monto_sat = total_sat_cisi * coeficiente / 100`
+- Se imputa al **inquilino** si la unidad tiene uno; si no, al propietario.
 - Se crea un `recibo` por unidad con hasta dos `detallerecibo`:
   `Expensas Comunes. Pago Final` y `Servicios. Pago Final`.
 
@@ -61,8 +69,14 @@
 - `monto_consumo = consumo_kwh * precio_kw`
 - `servicio_comun = (total_factura − Σ(monto_consumo de todas las unidades)) / cantidad_unidades`
 - `total_unidad = monto_consumo + servicio_comun`
+- Se imputa al **inquilino** si la unidad tiene uno; si no, al propietario.
 - Se actualiza `consumo_luz` (`precio_kw`, `monto_consumo`, `servicio_comun`, `total`) y se crea un `recibo` por unidad con un `detallerecibo` del servicio `Luz (EDET)`.
-- Todos los montos se redondean a 2 decimales.
+
+**Expensas extraordinarias** (`tipo = 'extraordinarias'`):
+
+- `monto = total * coeficiente / 100`
+- Se imputa **siempre al propietario** de la unidad, nunca al inquilino.
+- Se crea un `recibo` por unidad con un `detallerecibo` de `Expensas Extraordinarias. Pago Final`.
 
 ## 5. Acciones y navegación
 
@@ -70,6 +84,7 @@
 |---|---|---|---|---|
 | Generar expensas | `/deudas` | POST | no | — |
 | Generar servicios | `/deudas/servicios` | POST | no | — |
+| Generar extraordinarias | `/deudas/extraordinarias` | POST | no | — |
 | Filtrar | `/deudas?departamento=&persona=&mes=` | GET | sí | `#deudas-table` |
 | Ver recibo | `/recibos/{id}` | GET | no | — |
 
@@ -79,8 +94,10 @@
 flowchart LR
   Deudas -->|POST periodo + expensas + SAT| GenExp[Generar expensas]
   Deudas -->|POST periodo + factura EDET + $/kW| GenServ[Generar servicios]
+  Deudas -->|POST periodo + total| GenExt[Generar extraordinarias]
   GenExp --> Deudas
   GenServ --> Deudas
+  GenExt --> Deudas
   Deudas -->|filtro unidad/persona/mes| Tabla[Registros de deuda]
   Tabla -->|Ver| ReciboDetalle
 ```

@@ -9,6 +9,7 @@ Sistema web para administrar expensas y servicios de edificios de departamentos.
 - Generación de recibos con vista previa y PDF
 - Deuda mensual por coeficiente (expensas + SAT/CISI) y consulta por unidad o persona
 - Servicios EDET: consumo por unidad + servicio común calculado de la factura
+- Expensas extraordinarias: división por coeficiente, imputadas al propietario
 - Roles diferenciados: Administrador, Propietario, Inquilino, Operador
 - Dashboard con métricas clave
 - Modo oscuro/claro

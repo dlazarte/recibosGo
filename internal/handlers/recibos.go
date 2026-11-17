@@ -51,7 +51,8 @@ func (a *App) RecibosList(w http.ResponseWriter, r *http.Request) {
 			// Find departments via persona (v2.1)
 			var persona models.Persona
 			var ids []uint
-			if a.DB.Where("email = ?", user.Email).First(&persona).Error == nil {
+			found := a.DB.Where("email = ?", user.Email).First(&persona).Error == nil
+			if found {
 				var depts []models.Departamento
 				a.DB.Where("id_dueño = ? OR id_inquilino = ?", persona.ID, persona.ID).Find(&depts)
 				for _, d := range depts {
@@ -61,7 +62,12 @@ func (a *App) RecibosList(w http.ResponseWriter, r *http.Request) {
 			if len(ids) == 0 {
 				ids = []uint{0}
 			}
-			base = base.Where("id_departamento IN ?", ids)
+			if user.Role == "inquilino" && found {
+				// El inquilino ve solo lo imputado a él; nil = legacy.
+				base = base.Where("id_persona = ? OR (id_persona IS NULL AND id_departamento IN ?)", persona.ID, ids)
+			} else {
+				base = base.Where("id_departamento IN ?", ids)
+			}
 		}
 		if depID != "" && depID != "0" {
 			base = base.Where("id_departamento = ?", depID)
@@ -396,19 +402,23 @@ func (a *App) canAccessRecibo(user *models.User, recibo *models.Recibo) bool {
 	if a.DB.Where("email = ?", user.Email).First(&persona).Error != nil {
 		return false
 	}
-	if recibo.IDPersona != nil && *recibo.IDPersona == persona.ID {
-		return true
-	}
 	d := recibo.Departamento
 	if d.ID == 0 {
 		if a.DB.First(&d, recibo.IDDepartamento).Error != nil {
 			return false
 		}
 	}
+	if user.Role == "inquilino" {
+		if recibo.IDPersona != nil {
+			return *recibo.IDPersona == persona.ID
+		}
+		return d.IDInquilino != nil && *d.IDInquilino == persona.ID
+	}
+	// dueño
 	if d.IDDueño == persona.ID {
 		return true
 	}
-	return d.IDInquilino != nil && *d.IDInquilino == persona.ID
+	return recibo.IDPersona != nil && *recibo.IDPersona == persona.ID
 }
 
 func nextNumeroRecibo(db *gorm.DB, fecha time.Time) string {

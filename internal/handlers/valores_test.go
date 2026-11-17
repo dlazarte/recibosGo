@@ -27,14 +27,21 @@ func TestGenerarExpensas(t *testing.T) {
 
 	var recibos []models.Recibo
 	e.DB.Where("periodo = ? AND tipo = ?", "2026-11", "expensas").Find(&recibos)
-	if len(recibos) != 3 {
-		t.Fatalf("recibos generados = %d, quería 3 (T1 tiene coeficiente 0)", len(recibos))
+	if len(recibos) != 4 {
+		t.Fatalf("recibos generados = %d, quería 4", len(recibos))
 	}
 
 	want := map[uint]float64{
 		s.DeptoA1.ID: 600, // 1000*50% + 200*50%
 		s.DeptoA2.ID: 300, // 1000*25% + 200*25%
 		s.DeptoB1.ID: 300,
+		s.DeptoT1.ID: 120, // 1000*10% + 200*10%
+	}
+	deudor := map[uint]uint{
+		s.DeptoA1.ID: s.PersonaA.ID,
+		s.DeptoA2.ID: s.PersonaA.ID,
+		s.DeptoB1.ID: s.PersonaB.ID,
+		s.DeptoT1.ID: s.PersonaT.ID, // con inquilino, se imputa al inquilino
 	}
 	for _, r := range recibos {
 		esperado, ok := want[r.IDDepartamento]
@@ -43,6 +50,9 @@ func TestGenerarExpensas(t *testing.T) {
 		}
 		if math.Abs(r.Total-esperado) > 0.01 {
 			t.Fatalf("total depto %d = %.2f, quería %.2f", r.IDDepartamento, r.Total, esperado)
+		}
+		if r.IDPersona == nil || *r.IDPersona != deudor[r.IDDepartamento] {
+			t.Fatalf("deudor depto %d incorrecto", r.IDDepartamento)
 		}
 	}
 
@@ -53,8 +63,8 @@ func TestGenerarExpensas(t *testing.T) {
 	}
 	var count int64
 	e.DB.Model(&models.Recibo{}).Where("periodo = ? AND tipo = ?", "2026-11", "expensas").Count(&count)
-	if count != 3 {
-		t.Fatalf("tras segundo POST hay %d recibos, quería 3", count)
+	if count != 4 {
+		t.Fatalf("tras segundo POST hay %d recibos, quería 4", count)
 	}
 }
 
@@ -69,6 +79,7 @@ func TestGenerarServicios(t *testing.T) {
 		{s.DeptoA1.ID, 100},
 		{s.DeptoA2.ID, 50},
 		{s.DeptoB1.ID, 50},
+		{s.DeptoT1.ID, 0},
 	} {
 		if err := e.DB.Create(&models.ConsumoLuz{
 			Periodo: "2026-11", IDDepartamento: c.id, ConsumoKwh: c.kwh,
@@ -88,25 +99,32 @@ func TestGenerarServicios(t *testing.T) {
 
 	var consumos []models.ConsumoLuz
 	e.DB.Where("periodo = ?", "2026-11").Find(&consumos)
-	if len(consumos) != 3 {
-		t.Fatalf("consumos = %d, quería 3", len(consumos))
+	if len(consumos) != 4 {
+		t.Fatalf("consumos = %d, quería 4", len(consumos))
 	}
 	for _, c := range consumos {
-		// (20000 - 200 kWh * 50) / 3 = 3333.33
-		if math.Abs(c.ServicioComun-3333.33) > 0.01 {
-			t.Fatalf("servicio común = %.2f, quería 3333.33", c.ServicioComun)
+		// (20000 - 200 kWh * 50) / 4 = 2500.00
+		if math.Abs(c.ServicioComun-2500) > 0.01 {
+			t.Fatalf("servicio común = %.2f, quería 2500.00", c.ServicioComun)
 		}
 	}
 
 	var recibos []models.Recibo
 	e.DB.Where("periodo = ? AND tipo = ?", "2026-11", "servicios").Find(&recibos)
-	if len(recibos) != 3 {
-		t.Fatalf("recibos de servicios = %d, quería 3", len(recibos))
+	if len(recibos) != 4 {
+		t.Fatalf("recibos de servicios = %d, quería 4", len(recibos))
 	}
 	want := map[uint]float64{
-		s.DeptoA1.ID: 8333.33, // 100*50 + 3333.33
-		s.DeptoA2.ID: 5833.33, // 50*50 + 3333.33
-		s.DeptoB1.ID: 5833.33,
+		s.DeptoA1.ID: 7500, // 100*50 + 2500
+		s.DeptoA2.ID: 5000, // 50*50 + 2500
+		s.DeptoB1.ID: 5000,
+		s.DeptoT1.ID: 2500, // 0*50 + 2500
+	}
+	deudor := map[uint]uint{
+		s.DeptoA1.ID: s.PersonaA.ID,
+		s.DeptoA2.ID: s.PersonaA.ID,
+		s.DeptoB1.ID: s.PersonaB.ID,
+		s.DeptoT1.ID: s.PersonaT.ID,
 	}
 	for _, r := range recibos {
 		esperado, ok := want[r.IDDepartamento]
@@ -115,6 +133,9 @@ func TestGenerarServicios(t *testing.T) {
 		}
 		if math.Abs(r.Total-esperado) > 0.01 {
 			t.Fatalf("total depto %d = %.2f, quería %.2f", r.IDDepartamento, r.Total, esperado)
+		}
+		if r.IDPersona == nil || *r.IDPersona != deudor[r.IDDepartamento] {
+			t.Fatalf("deudor depto %d incorrecto", r.IDDepartamento)
 		}
 	}
 }
@@ -216,5 +237,83 @@ func TestPagarDesdeLista(t *testing.T) {
 	rec = e.request(t, http.MethodGet, "/deudas?estado=pagado", admin, nil)
 	if !strings.Contains(rec.Body.String(), link) {
 		t.Fatal("el recibo pagado no aparece en pagados")
+	}
+}
+
+func TestGenerarExtraordinarias(t *testing.T) {
+	e := newTestEnv(t)
+	s := seedScenario(t, e)
+
+	rec := e.request(t, http.MethodPost, "/deudas/extraordinarias", e.sessionCookie(t, s.Admin), url.Values{
+		"periodo": {"2026-11"},
+		"total":   {"1000"},
+	})
+	if rec.Code != http.StatusFound {
+		t.Fatalf("generar extraordinarias: status = %d, quería 302", rec.Code)
+	}
+
+	var recibos []models.Recibo
+	e.DB.Where("periodo = ? AND tipo = ?", "2026-11", "extraordinarias").Find(&recibos)
+	if len(recibos) != 4 {
+		t.Fatalf("recibos extraordinarios = %d, quería 4", len(recibos))
+	}
+	want := map[uint]float64{
+		s.DeptoA1.ID: 500,
+		s.DeptoA2.ID: 250,
+		s.DeptoB1.ID: 250,
+		s.DeptoT1.ID: 100,
+	}
+	deudor := map[uint]uint{
+		s.DeptoA1.ID: s.PersonaA.ID,
+		s.DeptoA2.ID: s.PersonaA.ID,
+		s.DeptoB1.ID: s.PersonaB.ID,
+		s.DeptoT1.ID: s.PersonaB.ID, // propietario, nunca inquilino
+	}
+	for _, r := range recibos {
+		if math.Abs(r.Total-want[r.IDDepartamento]) > 0.01 {
+			t.Fatalf("total depto %d = %.2f, quería %.2f", r.IDDepartamento, r.Total, want[r.IDDepartamento])
+		}
+		if r.IDPersona == nil || *r.IDPersona != deudor[r.IDDepartamento] {
+			t.Fatalf("deudor depto %d incorrecto: extraordinarias van al propietario", r.IDDepartamento)
+		}
+	}
+}
+
+func TestInquilinoNoVeExtraordinarias(t *testing.T) {
+	e := newTestEnv(t)
+	s := seedScenario(t, e)
+	admin := e.sessionCookie(t, s.Admin)
+	tenant := e.sessionCookie(t, s.Tenant)
+
+	e.request(t, http.MethodPost, "/deudas", admin, url.Values{
+		"periodo": {"2026-11"}, "total_expensas": {"1000"}, "total_sat_cisi": {"200"},
+	})
+	e.request(t, http.MethodPost, "/deudas/extraordinarias", admin, url.Values{
+		"periodo": {"2026-11"}, "total": {"1000"},
+	})
+
+	var expT, extT models.Recibo
+	e.DB.Where("periodo = ? AND tipo = ? AND id_departamento = ?", "2026-11", "expensas", s.DeptoT1.ID).First(&expT)
+	e.DB.Where("periodo = ? AND tipo = ? AND id_departamento = ?", "2026-11", "extraordinarias", s.DeptoT1.ID).First(&extT)
+	if expT.ID == 0 || extT.ID == 0 {
+		t.Fatal("no se generaron los recibos de T1")
+	}
+
+	rec := e.request(t, http.MethodGet, fmt.Sprintf("/recibos/%d", expT.ID), tenant, nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("el inquilino no puede ver su expensa: status = %d", rec.Code)
+	}
+	rec = e.request(t, http.MethodGet, fmt.Sprintf("/recibos/%d", extT.ID), tenant, nil)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("el inquilino no debería ver extraordinarias: status = %d", rec.Code)
+	}
+
+	rec = e.request(t, http.MethodGet, "/deudas", tenant, nil)
+	body := rec.Body.String()
+	if !strings.Contains(body, fmt.Sprintf("/recibos/%d", expT.ID)) {
+		t.Fatal("el inquilino no ve su expensa en /deudas")
+	}
+	if strings.Contains(body, fmt.Sprintf("/recibos/%d", extT.ID)) {
+		t.Fatal("el inquilino ve una extraordinaria en /deudas")
 	}
 }

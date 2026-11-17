@@ -38,7 +38,7 @@ erDiagram
         string numero_recibo "REC-YYYY-NNNN"
         date fecha
         string periodo "YYYY-MM de la deuda generada; '' si es manual"
-        string tipo "expensas | servicios"
+        string tipo "expensas | servicios | extraordinarias"
         int id_departamento FK
         int id_persona FK "nullable, titular al generar"
         string observaciones

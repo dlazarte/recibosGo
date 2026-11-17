@@ -205,7 +205,7 @@ func seedScenario(t *testing.T, e *testEnv) *scenario {
 	s.DeptoA2 = e.createDepto(t, "A2", s.PersonaA.ID, nil, 25)
 	s.DeptoB1 = e.createDepto(t, "B1", s.PersonaB.ID, nil, 25)
 	inqID := s.PersonaT.ID
-	s.DeptoT1 = e.createDepto(t, "T1", s.PersonaB.ID, &inqID, 0)
+	s.DeptoT1 = e.createDepto(t, "T1", s.PersonaB.ID, &inqID, 10)
 
 	s.ServicioExpensas = e.createServicio(t, "Expensas Comunes. Pago Final")
 	s.ServicioSatCisi = e.createServicio(t, "Servicios. Pago Final")

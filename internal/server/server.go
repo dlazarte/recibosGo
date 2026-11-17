@@ -76,6 +76,7 @@ func NewRouter(app *handlers.App, auth *middleware.AppCtx, root string) *chi.Mux
 					r.Use(middleware.RequireRole("administrador", "receptor"))
 					r.Post("/", app.DeudaGenerar)
 					r.Post("/servicios", app.ServicioGenerar)
+					r.Post("/extraordinarias", app.ExtraordinariaGenerar)
 				})
 			})
 		})

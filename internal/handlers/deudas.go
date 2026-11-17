@@ -15,16 +15,18 @@ import (
 
 // Servicios existentes que representan cada componente de la deuda mensual.
 const (
-	servicioExpensas = "Expensas Comunes. Pago Final"
-	servicioSatCisi  = "Servicios. Pago Final"
-	servicioLuz      = "Luz (EDET)"
+	servicioExpensas        = "Expensas Comunes. Pago Final"
+	servicioSatCisi         = "Servicios. Pago Final"
+	servicioLuz             = "Luz (EDET)"
+	servicioExtraordinarias = "Expensas Extraordinarias. Pago Final"
 )
 
 type DeudaItem struct {
-	Recibo   models.Recibo
-	Expensas float64
-	SatCisi  float64
-	Luz      float64
+	Recibo          models.Recibo
+	Expensas        float64
+	SatCisi         float64
+	Luz             float64
+	Extraordinarias float64
 }
 
 type DeudasData struct {
@@ -58,7 +60,8 @@ func (a *App) DeudasList(w http.ResponseWriter, r *http.Request) {
 	if user.Role != "administrador" && user.Role != "receptor" {
 		var persona models.Persona
 		var ids []uint
-		if a.DB.Where("email = ?", user.Email).First(&persona).Error == nil {
+		found := a.DB.Where("email = ?", user.Email).First(&persona).Error == nil
+		if found {
 			var depts []models.Departamento
 			a.DB.Where("id_dueño = ? OR id_inquilino = ?", persona.ID, persona.ID).Find(&depts)
 			for _, d := range depts {
@@ -68,7 +71,12 @@ func (a *App) DeudasList(w http.ResponseWriter, r *http.Request) {
 		if len(ids) == 0 {
 			ids = []uint{0}
 		}
-		q = q.Where("id_departamento IN ?", ids)
+		if user.Role == "inquilino" && found {
+			// El inquilino ve solo lo imputado a él; el nil es legacy.
+			q = q.Where("id_persona = ? OR (id_persona IS NULL AND id_departamento IN ?)", persona.ID, ids)
+		} else {
+			q = q.Where("id_departamento IN ?", ids)
+		}
 	}
 	if depID != "" && depID != "0" {
 		q = q.Where("id_departamento = ?", depID)
@@ -110,6 +118,8 @@ func (a *App) DeudasList(w http.ResponseWriter, r *http.Request) {
 				it.SatCisi += monto
 			case servicioLuz:
 				it.Luz += monto
+			case servicioExtraordinarias:
+				it.Extraordinarias += monto
 			}
 		}
 		items = append(items, it)
@@ -210,7 +220,7 @@ func (a *App) DeudaGenerar(w http.ResponseWriter, r *http.Request) {
 				Periodo:        periodo,
 				Tipo:           "expensas",
 				IDDepartamento: d.ID,
-				IDPersona:      uintPtr(d.IDDueño),
+				IDPersona:      personaDeudora(d, false),
 				Total:          exp + sat,
 				Detalles:       detalles,
 			}
@@ -290,7 +300,7 @@ func (a *App) ServicioGenerar(w http.ResponseWriter, r *http.Request) {
 				Periodo:        periodo,
 				Tipo:           "servicios",
 				IDDepartamento: c.IDDepartamento,
-				IDPersona:      uintPtr(c.Departamento.IDDueño),
+				IDPersona:      personaDeudora(c.Departamento, false),
 				Total:          total,
 				Detalles: []models.DetalleRecibo{{
 					IDServicio: luzSvc.ID, Precio: total, Cantidad: 1, Descripcion: &desc,
@@ -309,6 +319,83 @@ func (a *App) ServicioGenerar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/deudas?mes="+periodo+"&msg="+urlEscape(fmt.Sprintf("Se generaron %d recibos de servicios para %s (común $ %.2f)", created, periodo, comun)), http.StatusFound)
+}
+
+// ExtraordinariaGenerar divide un total de expensas extraordinarias por coeficiente
+// y lo imputa siempre al propietario de la unidad.
+func (a *App) ExtraordinariaGenerar(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	periodo := r.FormValue("periodo")
+	start, err := time.Parse("2006-01", periodo)
+	if err != nil {
+		http.Redirect(w, r, "/deudas?msg="+urlEscape("Período inválido (usar AAAA-MM)"), http.StatusFound)
+		return
+	}
+	total, _ := strconv.ParseFloat(r.FormValue("total"), 64)
+	if total <= 0 {
+		http.Redirect(w, r, "/deudas?msg="+urlEscape("Ingresá un importe mayor a cero"), http.StatusFound)
+		return
+	}
+
+	var existing int64
+	a.DB.Model(&models.Recibo{}).Where("periodo = ? AND tipo = ?", periodo, "extraordinarias").Count(&existing)
+	if existing > 0 {
+		http.Redirect(w, r, "/deudas?mes="+periodo+"&msg="+urlEscape("Las expensas extraordinarias de "+periodo+" ya fueron generadas"), http.StatusFound)
+		return
+	}
+
+	var depts []models.Departamento
+	a.DB.Where("activo = ? AND coeficiente > 0", true).Order("nombre ASC").Find(&depts)
+	if len(depts) == 0 {
+		http.Redirect(w, r, "/deudas?msg="+urlEscape("No hay unidades activas con coeficiente mayor a cero"), http.StatusFound)
+		return
+	}
+
+	svc := a.findOrCreateServicio(servicioExtraordinarias)
+	created := 0
+	err = a.DB.Transaction(func(tx *gorm.DB) error {
+		for _, d := range depts {
+			monto := round2(total * d.Coeficiente / 100)
+			if monto == 0 {
+				continue
+			}
+			nombre := d.Nombre
+			recibo := models.Recibo{
+				NumeroRecibo:   nextNumeroRecibo(tx, start),
+				Fecha:          models.Fecha{Time: start},
+				Periodo:        periodo,
+				Tipo:           "extraordinarias",
+				IDDepartamento: d.ID,
+				IDPersona:      personaDeudora(d, true),
+				Total:          monto,
+				Detalles: []models.DetalleRecibo{{
+					IDServicio: svc.ID, Precio: monto, Cantidad: 1, Descripcion: &nombre,
+				}},
+			}
+			if err := tx.Create(&recibo).Error; err != nil {
+				return err
+			}
+			created++
+		}
+		return nil
+	})
+	if err != nil {
+		http.Redirect(w, r, "/deudas?msg="+urlEscape("Error al generar extraordinarias: "+err.Error()), http.StatusFound)
+		return
+	}
+
+	http.Redirect(w, r, "/deudas?mes="+periodo+"&msg="+urlEscape(fmt.Sprintf("Se generaron %d recibos extraordinarios para %s", created, periodo)), http.StatusFound)
+}
+
+// personaDeudora: inquilino si existe (salvo soloPropietario), si no el dueño.
+func personaDeudora(d models.Departamento, soloPropietario bool) *uint {
+	if !soloPropietario && d.IDInquilino != nil && *d.IDInquilino != 0 {
+		return d.IDInquilino
+	}
+	return uintPtr(d.IDDueño)
 }
 
 // calcDeuda aplica el coeficiente (en %) sobre los totales y redondea a 2 decimales.
