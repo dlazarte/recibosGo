@@ -15,19 +15,20 @@ import (
 
 // Servicios existentes que representan cada componente de la deuda mensual.
 const (
-	servicioExpensas        = "Expensas Comunes. Pago Final"
-	servicioSatCisi         = "Servicios. Pago Final"
-	servicioLuz             = "Luz (EDET)"
-	servicioExtraordinarias = "Expensas Extraordinarias. Pago Final"
+	servicioExpensas        = "Expensas Comunes"
+	servicioSatCisi         = "Servicios"
+	servicioLuz             = "Servicios"
+	servicioExtraordinarias = "Expensas Extraordinarias"
+	servicioDeudaAnterior   = "Deudas Anteriores"
 	tasaInteres             = 0.20
 )
 
 type DeudaItem struct {
 	Recibo          models.Recibo
 	Expensas        float64
-	SatCisi         float64
-	Luz             float64
+	Servicios       float64
 	Extraordinarias float64
+	Anteriores      float64
 }
 
 type DeudasData struct {
@@ -106,7 +107,7 @@ func (a *App) DeudasList(w http.ResponseWriter, r *http.Request) {
 	q.Count(&total)
 
 	var recibos []models.Recibo
-	q.Preload("Departamento.Dueño").Preload("Detalles.Servicio").
+	q.Preload("Departamento.Dueño").Preload("Titular").Preload("Detalles.Servicio").
 		Order("fecha DESC, id DESC").
 		Offset((paginaActual(r) - 1) * perPage).
 		Limit(perPage).
@@ -121,11 +122,11 @@ func (a *App) DeudasList(w http.ResponseWriter, r *http.Request) {
 			case servicioExpensas:
 				it.Expensas += monto
 			case servicioSatCisi:
-				it.SatCisi += monto
-			case servicioLuz:
-				it.Luz += monto
+				it.Servicios += monto
 			case servicioExtraordinarias:
 				it.Extraordinarias += monto
+			case servicioDeudaAnterior:
+				it.Anteriores += monto
 			}
 		}
 		items = append(items, it)
@@ -209,16 +210,17 @@ func (a *App) DeudaGenerar(w http.ResponseWriter, r *http.Request) {
 			if exp+sat == 0 {
 				continue
 			}
-			nombre := d.Nombre
+			descExp := "Expensas Comunes " + d.Nombre
+			descSat := "Servicios " + d.Nombre
 			var detalles []models.DetalleRecibo
 			if exp > 0 {
 				detalles = append(detalles, models.DetalleRecibo{
-					IDServicio: expSvc.ID, Precio: exp, Cantidad: 1, Descripcion: &nombre,
+					IDServicio: expSvc.ID, Precio: exp, Cantidad: 1, Descripcion: &descExp,
 				})
 			}
 			if sat > 0 {
 				detalles = append(detalles, models.DetalleRecibo{
-					IDServicio: satSvc.ID, Precio: sat, Cantidad: 1, Descripcion: &nombre,
+					IDServicio: satSvc.ID, Precio: sat, Cantidad: 1, Descripcion: &descSat,
 				})
 			}
 			total := exp + sat
@@ -303,7 +305,7 @@ func (a *App) ServicioGenerar(w http.ResponseWriter, r *http.Request) {
 			if err := tx.Omit("Departamento").Save(&c).Error; err != nil {
 				return err
 			}
-			desc := "Luz EDET " + periodo
+			desc := "Servicios " + c.Departamento.Nombre
 			recibo := models.Recibo{
 				NumeroRecibo:    nextNumeroRecibo(tx, start),
 				Fecha:           models.Fecha{Time: start},
@@ -374,7 +376,7 @@ func (a *App) ExtraordinariaGenerar(w http.ResponseWriter, r *http.Request) {
 			if monto == 0 {
 				continue
 			}
-			nombre := d.Nombre
+			desc := "Expensas Extraordinarias " + d.Nombre
 			recibo := models.Recibo{
 				NumeroRecibo:    nextNumeroRecibo(tx, start),
 				Fecha:           models.Fecha{Time: start},
@@ -386,7 +388,7 @@ func (a *App) ExtraordinariaGenerar(w http.ResponseWriter, r *http.Request) {
 				FechaCorte:      corteDe(start),
 				TotalConInteres: round2(monto * (1 + tasaInteres)),
 				Detalles: []models.DetalleRecibo{{
-					IDServicio: svc.ID, Precio: monto, Cantidad: 1, Descripcion: &nombre,
+					IDServicio: svc.ID, Precio: monto, Cantidad: 1, Descripcion: &desc,
 				}},
 			}
 			if err := tx.Create(&recibo).Error; err != nil {

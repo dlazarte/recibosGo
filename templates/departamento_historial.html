@@ -39,7 +39,7 @@
           <td>{{if .Periodo}}{{.Periodo}}{{else}}{{fmtFechaD .Fecha}}{{end}}</td>
           <td>{{if .Tipo}}{{.Tipo}}{{else}}manual{{end}}</td>
           <td>$ {{fmtMoney .MontoPagar}}{{if .Vencido}} <span class="badge warn">+20%</span>{{end}}</td>
-          <td>{{if .Pagado}}<span class="badge ok">Pagado</span>{{else}}<span class="badge warn">Pendiente</span>{{end}}</td>
+          <td>{{if .Pagado}}{{if .PagoParcial}}<span class="badge warn">Pago parcial</span>{{else}}<span class="badge ok">Pagado</span>{{end}}{{else}}<span class="badge warn">Pendiente</span>{{end}}</td>
           <td>{{if .FechaPago}}{{.FechaPago.String}}{{end}}</td>
           <td><a href="/recibos/{{.ID}}" class="btn ghost sm">Ver</a></td>
         </tr>

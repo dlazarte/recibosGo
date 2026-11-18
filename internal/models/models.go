@@ -122,6 +122,9 @@ type Recibo struct {
 	TotalConInteres float64
 	FechaPago       *Fecha
 	MontoPagado     float64
+	PagoParcial     bool
+	IDReciboOrigen  *uint
+	SaldoFavor      float64
 	Departamento    Departamento    `gorm:"foreignKey:IDDepartamento"`
 	Titular         *Persona        `gorm:"foreignKey:IDPersona"`
 	Detalles        []DetalleRecibo `gorm:"foreignKey:IDRecibo"`

@@ -20,10 +20,13 @@
       <tr>
         <td>{{.NumeroRecibo}}</td>
         <td>{{fmtFechaD .Fecha}}</td>
-        <td>{{trimNumero .Departamento.Numero}}</td>
-        <td>{{.Departamento.Propietario}}</td>
+        <td>{{.Departamento.Nombre}}</td>
+        <td>{{if .Titular}}{{.Titular.Nombre}}{{else}}{{.Departamento.Propietario}}{{end}}</td>
         <td>$ {{fmtMoney .MontoPagar}}{{if .Vencido}} <span class="badge warn">+20%</span>{{end}}</td>
-        <td>{{if .Pagado}}<span class="badge ok">Pagado</span>{{else}}<span class="badge warn">Pendiente</span>{{end}}</td>
+        <td>
+          {{if .Pagado}}{{if .PagoParcial}}<span class="badge warn">Pago parcial</span>{{else}}<span class="badge ok">Pagado</span>{{end}}{{else}}<span class="badge warn">Pendiente</span>{{end}}
+          {{if .SaldoFavor}}<span class="badge ok">Saldo a favor $ {{fmtMoney .SaldoFavor}}</span>{{end}}
+        </td>
         <td>{{.FormaPago}}</td>
         <td><a href="/recibos/{{.ID}}" class="btn ghost sm">Ver</a> <a href="/recibos/{{.ID}}/pdf" class="btn ghost sm" target="_blank">PDF</a></td>
       </tr>

@@ -1,5 +1,6 @@
 {{define "recibo_detalle"}}
 {{$r := .Data.Recibo}}
+{{if .Msg}}<p class="msg-ok">{{.Msg}}</p>{{end}}
 <div class="card">
   <div class="row">
     <div style="flex:1;">
@@ -16,6 +17,8 @@
       <p style="font-size:1.1rem;"><strong>A pagar:</strong> $ {{fmtMoney $r.MontoPagar}}</p>
       {{if $r.FechaPago}}<p><strong>Pagado el:</strong> {{$r.FechaPago.String}}</p>{{end}}
       {{if $r.MontoPagado}}<p><strong>Monto pagado:</strong> $ {{fmtMoney $r.MontoPagado}}</p>{{end}}
+      {{if $r.PagoParcial}}<p><strong>Pago parcial:</strong> saldo $ {{fmtMoney .Data.Saldo}}</p>{{end}}
+      {{if $r.SaldoFavor}}<p><strong>Saldo a favor:</strong> $ {{fmtMoney $r.SaldoFavor}}</p>{{end}}
     </div>
   </div>
   {{if $r.Observaciones}}<p style="margin-top:0.75rem;"><strong>Observaciones:</strong> {{$r.Observaciones}}</p>{{end}}
@@ -69,7 +72,11 @@
         <option value="T">Transferencia</option>
       </select>
     </label>
-    <button type="submit" class="btn success">Marcar como pagado</button>
+    <label>Importe
+      <input type="number" name="importe" step="0.01" min="0.01"
+             value="{{printf "%.2f" $r.MontoPagar}}" required>
+    </label>
+    <button type="submit" class="btn success">Registrar pago</button>
   </form>
 </div>
 {{end}}

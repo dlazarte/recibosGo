@@ -35,6 +35,7 @@ type ReciboCreateData struct {
 
 type ReciboDetailData struct {
 	Recibo models.Recibo
+	Saldo  float64
 }
 
 func (a *App) RecibosList(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +96,7 @@ func (a *App) RecibosList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var recibos []models.Recibo
-	q.Preload("Departamento").Preload("Detalles.Servicio").
+	q.Preload("Departamento").Preload("Titular").Preload("Detalles.Servicio").
 		Order("fecha DESC, id DESC").
 		Offset((page - 1) * perPage).
 		Limit(perPage).
@@ -341,11 +342,18 @@ func (a *App) ReciboDetail(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Acceso denegado", http.StatusForbidden)
 		return
 	}
+	var carry models.Recibo
+	var saldo float64
+	if a.DB.Where("id_recibo_origen = ?", recibo.ID).First(&carry).Error == nil {
+		saldo = carry.Total
+	}
+	data := ReciboDetailData{Recibo: recibo, Saldo: saldo}
+	msg := r.URL.Query().Get("msg")
 	if r.Header.Get("HX-Request") == "true" {
-		a.renderFrag(w, "recibo_detalle", PageData{Data: ReciboDetailData{Recibo: recibo}})
+		a.renderFrag(w, "recibo_detalle", PageData{Data: data, Msg: msg})
 		return
 	}
-	a.render(w, r, "recibo_detail", PageData{Data: ReciboDetailData{Recibo: recibo}})
+	a.render(w, r, "recibo_detail", PageData{Data: data, Msg: msg})
 }
 
 func (a *App) ReciboPagar(w http.ResponseWriter, r *http.Request) {
@@ -368,26 +376,107 @@ func (a *App) ReciboPagar(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Acceso denegado", http.StatusForbidden)
 		return
 	}
-	for i := range recibo.Detalles {
-		recibo.Detalles[i].FormaPago = forma
+
+	due := recibo.MontoPagar()
+	importe := due
+	if v := r.FormValue("importe"); v != "" {
+		parsed, err := strconv.ParseFloat(v, 64)
+		if err != nil || parsed <= 0 {
+			http.Redirect(w, r, fmt.Sprintf("/recibos/%d?msg=%s", id, urlEscape("Importe inválido")), http.StatusFound)
+			return
+		}
+		importe = round2(parsed)
 	}
-	if err := a.DB.Save(&recibo.Detalles).Error; err != nil {
+	parcial := importe < due-0.005
+	favor := 0.0
+	if importe > due+0.005 {
+		favor = round2(importe - due)
+	}
+
+	svc := a.findOrCreateServicio(servicioDeudaAnterior)
+	var saldo float64
+	err = a.DB.Transaction(func(tx *gorm.DB) error {
+		for i := range recibo.Detalles {
+			recibo.Detalles[i].FormaPago = forma
+		}
+		if err := tx.Save(&recibo.Detalles).Error; err != nil {
+			return err
+		}
+		recibo.FechaPago = &models.Fecha{Time: time.Now()}
+		recibo.MontoPagado = importe
+		recibo.PagoParcial = parcial
+		recibo.SaldoFavor = favor
+		if err := tx.Omit("Departamento", "Titular", "Detalles").Save(&recibo).Error; err != nil {
+			return err
+		}
+		if !parcial {
+			return nil
+		}
+		saldo = round2(due - importe)
+		deudor := recibo.IDPersona
+		if deudor == nil {
+			deudor = personaDeudora(recibo.Departamento, false)
+		}
+		periodo := recibo.Periodo
+		if periodo == "" {
+			periodo = time.Now().Format("2006-01")
+		}
+		desc := fmt.Sprintf("Deudas Anteriores %s (recibo %s)", periodo, recibo.NumeroRecibo)
+		nuevo := models.Recibo{
+			NumeroRecibo:    nextNumeroRecibo(tx, time.Now()),
+			Fecha:           models.Fecha{Time: time.Now()},
+			Periodo:         time.Now().Format("2006-01"),
+			Tipo:            "deuda_anterior",
+			IDDepartamento:  recibo.IDDepartamento,
+			IDPersona:       deudor,
+			Total:           saldo,
+			TotalConInteres: saldo,
+			IDReciboOrigen:  &recibo.ID,
+			Detalles: []models.DetalleRecibo{{
+				IDServicio: svc.ID, Precio: saldo, Cantidad: 1, Descripcion: &desc,
+			}},
+		}
+		return tx.Create(&nuevo).Error
+	})
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	monto := recibo.MontoPagar()
-	recibo.FechaPago = &models.Fecha{Time: time.Now()}
-	recibo.MontoPagado = monto
-	if err := a.DB.Omit("Departamento", "Titular", "Detalles").Save(&recibo).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+	msg := ""
+	if parcial {
+		msg = fmt.Sprintf("Pago parcial registrado. Saldo: $ %.2f", saldo)
+	} else if favor > 0 {
+		msg = fmt.Sprintf("Pago registrado. Saldo a favor: $ %.2f", favor)
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		var updated models.Recibo
+		a.DB.Preload("Departamento").Preload("Detalles.Servicio").First(&updated, id)
+		var carry models.Recibo
+		var saldoTotal float64
+		if a.DB.Where("id_recibo_origen = ?", updated.ID).First(&carry).Error == nil {
+			saldoTotal = carry.Total
+		}
+		a.renderFrag(w, "recibo_detalle", PageData{
+			Data: ReciboDetailData{Recibo: updated, Saldo: saldoTotal},
+			Msg:  msg,
+		})
 		return
 	}
 	if back := r.FormValue("volver"); strings.HasPrefix(back, "/") && !strings.HasPrefix(back, "//") {
+		if msg != "" {
+			sep := "?"
+			if strings.Contains(back, "?") {
+				sep = "&"
+			}
+			back += sep + "msg=" + urlEscape(msg)
+		}
 		http.Redirect(w, r, back, http.StatusFound)
 		return
 	}
-	if r.Header.Get("HX-Request") == "true" {
-		a.renderFrag(w, "recibo_detalle", PageData{Data: ReciboDetailData{Recibo: recibo}})
+	if msg != "" {
+		http.Redirect(w, r, fmt.Sprintf("/recibos/%d?msg=%s", id, urlEscape(msg)), http.StatusFound)
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/recibos/%d", id), http.StatusFound)

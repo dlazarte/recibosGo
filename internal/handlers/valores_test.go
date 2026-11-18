@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"recibosgo/internal/models"
 )
@@ -306,6 +307,94 @@ func TestDashboardDeudasAnteriores(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "Deudas de inquilinos anteriores") {
 		t.Fatal("el dashboard no muestra la sección de deudas anteriores")
+	}
+}
+
+func TestPagoParcialGeneraDeudaAnterior(t *testing.T) {
+	e := newTestEnv(t)
+	s := seedScenario(t, e)
+	admin := e.sessionCookie(t, s.Admin)
+
+	rec := e.request(t, http.MethodPost, fmt.Sprintf("/recibos/%d/pagar", s.ReciboA1.ID), admin, url.Values{
+		"forma_pago": {"E"},
+		"importe":    {"400"},
+		"volver":     {"/deudas?estado=pendiente"},
+	})
+	if rec.Code != http.StatusFound {
+		t.Fatalf("pago parcial: status = %d, quería 302", rec.Code)
+	}
+
+	var original models.Recibo
+	if err := e.DB.First(&original, s.ReciboA1.ID).Error; err != nil {
+		t.Fatalf("leyendo original: %v", err)
+	}
+	if !original.PagoParcial {
+		t.Fatal("el original no quedó marcado como pago parcial")
+	}
+	if original.MontoPagado != 400 {
+		t.Fatalf("monto pagado = %.2f, quería 400", original.MontoPagado)
+	}
+	if original.SaldoFavor != 0 {
+		t.Fatalf("saldo a favor = %.2f, quería 0", original.SaldoFavor)
+	}
+
+	var carry models.Recibo
+	if err := e.DB.Where("id_recibo_origen = ?", s.ReciboA1.ID).First(&carry).Error; err != nil {
+		t.Fatalf("no se generó la deuda anterior: %v", err)
+	}
+	if carry.Tipo != "deuda_anterior" {
+		t.Fatalf("tipo = %q, quería deuda_anterior", carry.Tipo)
+	}
+	if math.Abs(carry.Total-600) > 0.01 {
+		t.Fatalf("saldo = %.2f, quería 600", carry.Total)
+	}
+	if carry.IDPersona == nil || *carry.IDPersona != s.PersonaA.ID {
+		t.Fatal("la deuda anterior no quedó imputada al deudor original")
+	}
+	if carry.Periodo != time.Now().Format("2006-01") {
+		t.Fatalf("período = %q, quería el mes de pago", carry.Periodo)
+	}
+
+	// El original queda cerrado; la deuda anterior aparece como pendiente.
+	body := e.request(t, http.MethodGet, "/deudas?estado=pendiente", admin, nil).Body.String()
+	if strings.Contains(body, fmt.Sprintf("/recibos/%d", s.ReciboA1.ID)) {
+		t.Fatal("el recibo original sigue apareciendo como pendiente")
+	}
+	if !strings.Contains(body, fmt.Sprintf("/recibos/%d", carry.ID)) {
+		t.Fatal("la deuda anterior no aparece como pendiente")
+	}
+}
+
+func TestSobrepagoSaldoAFavor(t *testing.T) {
+	e := newTestEnv(t)
+	s := seedScenario(t, e)
+	admin := e.sessionCookie(t, s.Admin)
+
+	rec := e.request(t, http.MethodPost, fmt.Sprintf("/recibos/%d/pagar", s.ReciboA1.ID), admin, url.Values{
+		"forma_pago": {"T"},
+		"importe":    {"1200"},
+	})
+	if rec.Code != http.StatusFound {
+		t.Fatalf("sobrepago: status = %d, quería 302", rec.Code)
+	}
+
+	var r models.Recibo
+	if err := e.DB.First(&r, s.ReciboA1.ID).Error; err != nil {
+		t.Fatalf("leyendo recibo: %v", err)
+	}
+	if r.MontoPagado != 1200 {
+		t.Fatalf("monto pagado = %.2f, quería 1200", r.MontoPagado)
+	}
+	if r.SaldoFavor != 200 {
+		t.Fatalf("saldo a favor = %.2f, quería 200", r.SaldoFavor)
+	}
+	if r.PagoParcial {
+		t.Fatal("un sobrepago no debe marcarse como pago parcial")
+	}
+	var count int64
+	e.DB.Model(&models.Recibo{}).Where("id_recibo_origen = ?", s.ReciboA1.ID).Count(&count)
+	if count != 0 {
+		t.Fatal("un sobrepago no debe generar deuda anterior")
 	}
 }
 

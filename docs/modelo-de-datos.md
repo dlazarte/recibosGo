@@ -38,7 +38,7 @@ erDiagram
         string numero_recibo "REC-YYYY-NNNN"
         date fecha
         string periodo "YYYY-MM de la deuda generada; '' si es manual"
-        string tipo "expensas | servicios | extraordinarias"
+        string tipo "expensas | servicios | extraordinarias | deuda_anterior"
         int id_departamento FK
         int id_persona FK "nullable, titular al generar"
         string observaciones
@@ -47,6 +47,9 @@ erDiagram
         date fecha_corte "vencimiento del recargo"
         date fecha_pago "fecha real del pago"
         float monto_pagado "monto efectivamente cobrado"
+        bool pago_parcial
+        int id_recibo_origen FK "deuda anterior → recibo original"
+        float saldo_favor
     }
     servicio {
         int id PK

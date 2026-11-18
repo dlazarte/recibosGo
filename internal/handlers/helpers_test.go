@@ -207,9 +207,9 @@ func seedScenario(t *testing.T, e *testEnv) *scenario {
 	inqID := s.PersonaT.ID
 	s.DeptoT1 = e.createDepto(t, "T1", s.PersonaB.ID, &inqID, 10)
 
-	s.ServicioExpensas = e.createServicio(t, "Expensas Comunes. Pago Final")
-	s.ServicioSatCisi = e.createServicio(t, "Servicios. Pago Final")
-	s.ServicioLuz = e.createServicio(t, "Luz (EDET)")
+	s.ServicioExpensas = e.createServicio(t, "Expensas Comunes")
+	s.ServicioSatCisi = e.createServicio(t, "Servicios")
+	s.ServicioLuz = s.ServicioSatCisi
 
 	s.ReciboA1 = e.createRecibo(t, s.DeptoA1.ID, &s.PersonaA.ID, "expensas", "2026-01", 1000, []models.DetalleRecibo{
 		{IDServicio: s.ServicioExpensas.ID, Precio: 1000, Cantidad: 1},

@@ -64,7 +64,7 @@
 - `monto_sat = total_sat_cisi * coeficiente / 100`
 - Se imputa al **inquilino** si la unidad tiene uno; si no, al propietario.
 - Se crea un `recibo` por unidad con hasta dos `detallerecibo`:
-  `Expensas Comunes. Pago Final` y `Servicios. Pago Final`.
+  `Expensas Comunes` y `Servicios`, con descripción `<Servicio> <unidad>` (ej. `Expensas Comunes 1A`).
 
 **Servicios / luz** (`tipo = 'servicios'`):
 
@@ -72,19 +72,28 @@
 - `servicio_comun = (total_factura − Σ(monto_consumo de todas las unidades)) / cantidad_unidades`
 - `total_unidad = monto_consumo + servicio_comun`
 - Se imputa al **inquilino** si la unidad tiene uno; si no, al propietario.
-- Se actualiza `consumo_luz` (`precio_kw`, `monto_consumo`, `servicio_comun`, `total`) y se crea un `recibo` por unidad con un `detallerecibo` del servicio `Luz (EDET)`.
+- Se actualiza `consumo_luz` y se crea un `recibo` por unidad con un `detallerecibo` del servicio `Servicios` (descripción `Servicios <unidad>`).
 
 **Expensas extraordinarias** (`tipo = 'extraordinarias'`):
 
 - `monto = total * coeficiente / 100`
 - Se imputa **siempre al propietario** de la unidad, nunca al inquilino.
-- Se crea un `recibo` por unidad con un `detallerecibo` de `Expensas Extraordinarias. Pago Final`.
+- Se crea un `recibo` por unidad con un `detallerecibo` de `Expensas Extraordinarias`.
 
 **Recargo por vencimiento**
 
 - `Total` = monto base; `TotalConInteres` = `Total * 1.20`; `FechaCorte` = día 15 del período.
 - Al consultar, `MontoPagar()` devuelve `MontoPagado` si ya se pagó, `TotalConInteres` si venció, o `Total`.
 - Al pagar se graban `FechaPago` (fecha real) y `MontoPagado` (monto aplicado).
+
+**Pago total, parcial y saldo a favor**
+
+- El formulario de pago tiene un campo **Importe** editable (default `MontoPagar()`).
+- **Total**: se marca pagado y no genera deuda.
+- **Parcial** (`importe < MontoPagar`): el original queda `PagoParcial` y se genera una **deuda anterior** (`tipo = 'deuda_anterior'`) por el saldo, en el **mes de pago**, imputada al **mismo deudor**, sin recargo nuevo. El original queda cerrado; la deuda anterior queda pendiente.
+- **Sobrepago** (`importe > MontoPagar`): se registra el pago y el excedente queda como **saldo a favor** (`SaldoFavor`).
+
+La tabla muestra **Expensas**, **Servicios**, **Extraord.**, **Deudas ant.** y **Total**.
 
 ## 5. Acciones y navegación
 

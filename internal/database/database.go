@@ -50,6 +50,7 @@ func Connect(cfg config.Config) (*gorm.DB, error) {
 
 	// v2.1 — migración aditiva (idempotente)
 	migrateV21(db)
+	migrateServicios(db)
 	BackfillV21(db, cfg.CSVPath)
 
 	seedAdmin(db, cfg)
@@ -130,6 +131,21 @@ func migrateV21(db *gorm.DB) {
 			db.Exec("ALTER TABLE recibo ADD COLUMN monto_pagado DOUBLE PRECISION DEFAULT 0")
 		}
 	}
+	if !m.HasColumn("recibo", "pago_parcial") {
+		if err := m.AddColumn(&models.Recibo{}, "PagoParcial"); err != nil {
+			db.Exec("ALTER TABLE recibo ADD COLUMN pago_parcial BOOLEAN DEFAULT FALSE")
+		}
+	}
+	if !m.HasColumn("recibo", "id_recibo_origen") {
+		if err := m.AddColumn(&models.Recibo{}, "IDReciboOrigen"); err != nil {
+			db.Exec("ALTER TABLE recibo ADD COLUMN id_recibo_origen BIGINT")
+		}
+	}
+	if !m.HasColumn("recibo", "saldo_favor") {
+		if err := m.AddColumn(&models.Recibo{}, "SaldoFavor"); err != nil {
+			db.Exec("ALTER TABLE recibo ADD COLUMN saldo_favor DOUBLE PRECISION DEFAULT 0")
+		}
+	}
 }
 
 func seedAdmin(db *gorm.DB, cfg config.Config) {
@@ -147,4 +163,32 @@ func seedAdmin(db *gorm.DB, cfg config.Config) {
 		log.Fatalf("error seeding admin user: %v", err)
 	}
 	log.Printf("usuario administrador creado: %s", cfg.AdminEmail)
+}
+
+// migrateServicios unifica los servicios viejos ("Pago Final"/"Pago Parcial")
+// a los nombres base usados por la generación de deuda.
+func migrateServicios(db *gorm.DB) {
+	pairs := [][2]string{
+		{"Expensas Comunes. Pago Final", "Expensas Comunes"},
+		{"Expensas Comunes. Pago Parcial", "Expensas Comunes"},
+		{"Servicios. Pago Final", "Servicios"},
+		{"Servicios. Pago Parcial", "Servicios"},
+		{"Expensas Extraordinarias. Pago Final", "Expensas Extraordinarias"},
+		{"Expensas Extraordinarias. Pago Parcial", "Expensas Extraordinarias"},
+		{"Deudas Anteriores. Pago", "Deudas Anteriores"},
+		{"Luz (EDET)", "Servicios"},
+	}
+	for _, p := range pairs {
+		var old models.Servicio
+		if db.Where("nombre = ?", p[0]).First(&old).Error != nil {
+			continue
+		}
+		var target models.Servicio
+		if db.Where("nombre = ?", p[1]).First(&target).Error == nil {
+			db.Model(&models.DetalleRecibo{}).Where("id_servicio = ?", old.ID).Update("id_servicio", target.ID)
+			db.Delete(&old)
+		} else {
+			db.Model(&old).Update("nombre", p[1])
+		}
+	}
 }
