@@ -20,7 +20,7 @@
       <td>{{.Telefono}}</td>
       <td>{{.Email}}</td>
       <td>{{if .Activo}}<span class="badge ok">Activo</span>{{else}}<span class="badge warn">Inactivo</span>{{end}}</td>
-      <td><a href="/personas?edit={{.ID}}" class="btn ghost sm">Editar</a></td>
+      <td><a href="/personas?edit={{.ID}}" class="btn ghost sm">Editar</a> <a href="/personas/{{.ID}}/cuenta" class="btn ghost sm">Cuenta</a></td>
     </tr>
   {{else}}
     <tr><td colspan="6" class="empty">No se encontraron personas</td></tr>

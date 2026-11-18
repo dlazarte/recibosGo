@@ -51,6 +51,7 @@ func Connect(cfg config.Config) (*gorm.DB, error) {
 	// v2.1 — migración aditiva (idempotente)
 	migrateV21(db)
 	migrateServicios(db)
+	migrateIndexes(db)
 	BackfillV21(db, cfg.CSVPath)
 
 	seedAdmin(db, cfg)
@@ -145,6 +146,21 @@ func migrateV21(db *gorm.DB) {
 		if err := m.AddColumn(&models.Recibo{}, "SaldoFavor"); err != nil {
 			db.Exec("ALTER TABLE recibo ADD COLUMN saldo_favor DOUBLE PRECISION DEFAULT 0")
 		}
+	}
+}
+
+// migrateIndexes crea los índices usados por las consultas de cuenta y deudas.
+func migrateIndexes(db *gorm.DB) {
+	for _, stmt := range []string{
+		"CREATE INDEX IF NOT EXISTS idx_recibo_id_persona ON recibo(id_persona)",
+		"CREATE INDEX IF NOT EXISTS idx_recibo_id_departamento ON recibo(id_departamento)",
+		"CREATE INDEX IF NOT EXISTS idx_recibo_periodo ON recibo(periodo)",
+		"CREATE INDEX IF NOT EXISTS idx_recibo_tipo ON recibo(tipo)",
+		"CREATE INDEX IF NOT EXISTS idx_departamento_id_dueno ON departamento(id_dueño)",
+		"CREATE INDEX IF NOT EXISTS idx_departamento_id_inquilino ON departamento(id_inquilino)",
+		"CREATE INDEX IF NOT EXISTS idx_detallerecibo_id_recibo ON detallerecibo(id_recibo)",
+	} {
+		db.Exec(stmt)
 	}
 }
 

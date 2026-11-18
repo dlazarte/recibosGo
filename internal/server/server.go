@@ -55,6 +55,7 @@ func NewRouter(app *handlers.App, auth *middleware.AppCtx, root string) *chi.Mux
 			})
 			r.Route("/personas", func(r chi.Router) {
 				r.Get("/", app.PersonasList)
+				r.Get("/{id}/cuenta", app.PersonaCuenta)
 				r.Post("/", app.PersonaCreate)
 				r.Post("/{id}", app.PersonaUpdate)
 			})
@@ -108,7 +109,7 @@ func LoadTemplates(root string) (map[string]*template.Template, error) {
 		},
 	}
 	pages := []string{
-		"login", "dashboard", "departamentos", "departamento_historial", "servicios", "titulares",
+		"login", "dashboard", "departamentos", "departamento_historial", "servicios", "titulares", "persona_cuenta",
 		"recibos_list", "recibo_create", "recibo_detail", "reportes", "deudas",
 	}
 	fragments := []string{

@@ -1,0 +1,117 @@
+{{define "title"}}Cuenta {{.Data.Persona.Nombre}} - RecibosGo{{end}}
+{{define "content"}}
+{{$d := .Data}}
+<div class="page">
+  <div class="row-between">
+    <div>
+      <h1>Cuenta de {{$d.Persona.Nombre}}</h1>
+      <p class="subtitle">
+        {{if eq $d.Persona.Tipo "propietario"}}Propietario{{else}}Inquilino{{end}}
+        {{if $d.Persona.Telefono}}· {{$d.Persona.Telefono}}{{end}}
+        {{if $d.Persona.Email}}· {{$d.Persona.Email}}{{end}}
+        · {{if $d.Persona.Activo}}Activo{{else}}Inactivo{{end}}
+      </p>
+    </div>
+    <a class="btn secondary" href="/personas">Volver</a>
+  </div>
+
+  <div class="cards">
+    <div class="card stat warn-card">
+      <span class="num">$ {{fmtMoney $d.TotalPendiente}}</span>
+      <span class="label">A cobrar</span>
+    </div>
+    <div class="card stat ok-card">
+      <span class="num">$ {{fmtMoney $d.TotalPagado}}</span>
+      <span class="label">Pagado</span>
+    </div>
+    <div class="card stat">
+      <span class="num">$ {{fmtMoney $d.TotalSaldoFavor}}</span>
+      <span class="label">Saldo a favor</span>
+    </div>
+    <div class="card stat">
+      <span class="num">{{len $d.Unidades}}</span>
+      <span class="label">Unidades</span>
+    </div>
+  </div>
+
+  <h2>Unidades</h2>
+  <div class="card">
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Unidad</th><th>Rol</th><th>Coef.</th><th>Pendiente</th><th></th></tr>
+      </thead>
+      <tbody>
+      {{range $d.Unidades}}
+        <tr>
+          <td>{{.Departamento.Nombre}}</td>
+          <td>{{.Rol}}</td>
+          <td>{{printf "%.4f" .Departamento.Coeficiente}}</td>
+          <td>$ {{fmtMoney .Pendiente}}</td>
+          <td><a href="/departamentos/{{.Departamento.ID}}/historial" class="btn ghost sm">Historial</a></td>
+        </tr>
+      {{else}}
+        <tr><td colspan="5" class="empty">Sin unidades asociadas.</td></tr>
+      {{end}}
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="row-between">
+    <h2>Recibos</h2>
+    <div>
+      <a class="btn ghost sm" href="/personas/{{$d.Persona.ID}}/cuenta?estado=pendiente">Pendientes</a>
+      <a class="btn ghost sm" href="/personas/{{$d.Persona.ID}}/cuenta?estado=todos">Todos</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Recibo</th><th>Detalle</th><th>Importe</th></tr>
+      </thead>
+      <tbody>
+      {{range $d.Recibos}}
+        <tr>
+          <td>
+            <strong>{{.NumeroRecibo}}</strong><br>
+            <span class="subtitle">{{.Periodo}} · {{.Departamento.Nombre}}</span><br>
+            {{if .Pagado}}{{if .PagoParcial}}<span class="badge warn">Pago parcial</span>{{else}}<span class="badge ok">Pagado</span>{{end}}{{else}}<span class="badge warn">Pendiente</span>{{end}}
+            {{if .Vencido}}<span class="badge warn">+20%</span>{{end}}
+            <br><a href="/recibos/{{.ID}}" class="btn ghost sm">Ver</a>
+          </td>
+          <td>
+            <details>
+              <summary>Ver detalle</summary>
+              <table>
+                <thead><tr><th>Concepto</th><th>Importe</th><th>Pago</th></tr></thead>
+                <tbody>
+                {{range .Detalles}}
+                  <tr>
+                    <td>{{.Servicio.Nombre}}{{if .Descripcion}} — {{.Descripcion}}{{end}}</td>
+                    <td>$ {{fmtMoney (mul .Precio .Cantidad)}}</td>
+                    <td>{{if eq .FormaPago "E"}}Efectivo{{else if eq .FormaPago "T"}}Transferencia{{else}}—{{end}}</td>
+                  </tr>
+                {{end}}
+                </tbody>
+              </table>
+            </details>
+          </td>
+          <td>
+            <strong>$ {{fmtMoney .MontoPagar}}</strong><br>
+            <span class="subtitle">Base $ {{fmtMoney .Total}}</span>
+            {{if .MontoPagado}}<br><span class="subtitle">Pagado $ {{fmtMoney .MontoPagado}}</span>{{end}}
+            {{if .SaldoFavor}}<br><span class="badge ok">Saldo a favor $ {{fmtMoney .SaldoFavor}}</span>{{end}}
+            {{if .FechaPago}}<br><span class="subtitle">{{.FechaPago.String}}</span>{{end}}
+          </td>
+        </tr>
+      {{else}}
+        <tr><td colspan="3" class="empty">No hay recibos para el filtro seleccionado.</td></tr>
+      {{end}}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{{end}}

@@ -173,6 +173,7 @@ Acciones:
   - Crear persona
   - Editar persona
   - Búsqueda por nombre/teléfono/email
+  - Cuenta: unidades, recibos, detalle e importes (solo admin)
 
 👥 Roles y Permisos
 Matriz de Permisos

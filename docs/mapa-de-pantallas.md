@@ -55,6 +55,7 @@ flowchart LR
 | POST | `/departamentos` | `DepartamentoCreate` | — | — | admin, dueño, dueno |
 | POST | `/departamentos/{id}` | `DepartamentoUpdate` | — | — | admin, dueño, dueno |
 | GET | `/personas` | `PersonasList` | `titulares.html` | `personas_table` | admin |
+| GET | `/personas/{id}/cuenta` | `PersonaCuenta` | `persona_cuenta.html` | — | admin |
 | POST | `/personas` | `PersonaCreate` | — | — | admin |
 | POST | `/personas/{id}` | `PersonaUpdate` | — | — | admin |
 | GET | `/servicios` | `ServiciosList` | `servicios.html` | — | admin |
@@ -79,6 +80,7 @@ flowchart LR
 | Dashboard | [dashboard.md](./pantallas/dashboard.md) |
 | Departamentos | [departamentos.md](./pantallas/departamentos.md) |
 | Titulares | [titulares.md](./pantallas/titulares.md) |
+| Cuenta de persona | [persona-cuenta.md](./pantallas/persona-cuenta.md) |
 | Servicios | [servicios.md](./pantallas/servicios.md) |
 | Nuevo recibo | [recibos-nuevo.md](./pantallas/recibos-nuevo.md) |
 | Listado de recibos | [recibos-listado.md](./pantallas/recibos-listado.md) |
