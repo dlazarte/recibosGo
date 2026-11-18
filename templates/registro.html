@@ -1,0 +1,49 @@
+{{define "title"}}Registrarse - RecibosGo{{end}}
+{{define "content"}}
+{{$d := .Data}}
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="logo-area">
+      <div class="logo-icon">R</div>
+      <h1>RecibosGo</h1>
+      <p class="tagline">Solicitá tu acceso al sistema</p>
+    </div>
+
+    {{if .Err}}<p class="login-error">{{.Err}}</p>{{end}}
+    {{if .Msg}}<p class="msg-ok">{{.Msg}}</p>{{end}}
+
+    <p class="notice">Ingresá tus datos tal como figuran en el edificio. Si coinciden con una unidad registrada, tu cuenta se crea automáticamente.</p>
+
+    <form method="post" action="/registro">
+      <label>Unidad *
+        <select name="unidad" required>
+          <option value="">Seleccioná tu unidad...</option>
+          {{range $d}}
+          <option value="{{.Nombre}}">{{.Nombre}}</option>
+          {{end}}
+        </select>
+      </label>
+      <label>Nombre y apellido *
+        <input type="text" name="nombre" required autocomplete="name" placeholder="Tal como figura en el edificio">
+      </label>
+      <label>Email *
+        <input type="email" name="email" required autocomplete="username" spellcheck="false" placeholder="tu@email.com">
+      </label>
+      <label>Teléfono / móvil
+        <input type="tel" name="telefono" autocomplete="tel" placeholder="Si está registrado, agiliza la validación">
+      </label>
+      <label>Contraseña *
+        <input type="password" name="password" required minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres">
+      </label>
+      <label>Repetir contraseña *
+        <input type="password" name="password2" required minlength="8" autocomplete="new-password">
+      </label>
+      <button type="submit" class="btn">Registrarse</button>
+    </form>
+
+    <div class="check-row">
+      <a href="/login">Ya tengo cuenta → Iniciar sesión</a>
+    </div>
+  </div>
+</div>
+{{end}}

@@ -18,14 +18,14 @@ type App struct {
 }
 
 type PageData struct {
-	User        *models.User
-	IsAdmin     bool
-	IsOwner     bool
-	IsTenant    bool
-	IsReceptor  bool
-	Data        interface{}
-	Msg         string
-	Err         string
+	User       *models.User
+	IsAdmin    bool
+	IsOwner    bool
+	IsTenant   bool
+	IsReceptor bool
+	Data       interface{}
+	Msg        string
+	Err        string
 }
 
 func NewApp(db *gorm.DB, tmpls map[string]*template.Template, sessionSecret string) *App {

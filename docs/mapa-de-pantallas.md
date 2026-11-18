@@ -40,6 +40,8 @@ flowchart LR
 | Método | Ruta | Handler | Template | Roles |
 |---|---|---|---|---|
 | GET | `/login` | `LoginPage` | `login.html` | público |
+| GET | `/registro` | `RegistroPage` | `registro.html` | público |
+| POST | `/registro` | `RegistroCreate` | — | público (rate limit 5/h) |
 | POST | `/login` | `Login` | — | público |
 | POST | `/logout` | `Logout` | — | autenticado |
 | GET | `/static/*` | FileServer | — | público |
@@ -71,12 +73,14 @@ flowchart LR
 | POST | `/recibos/{id}/pagar` | `ReciboPagar` | — | `recibo_detalle` | todos |
 | GET | `/deudas` | `DeudasList` | `deudas.html` | `deudas_table`, `paginador` | todos |
 | POST | `/deudas` | `DeudaGenerar` | — | — | admin, receptor |
+| POST | `/registro/{id}/aprobar` | `RegistroAprobar` | — | — | admin |
 
 ## Referencia rápida por pantalla
 
 | Pantalla | Archivo doc |
 |---|---|
 | Login | [login.md](./pantallas/login.md) |
+| Registro de acceso | [registro.md](./pantallas/registro.md) |
 | Dashboard | [dashboard.md](./pantallas/dashboard.md) |
 | Departamentos | [departamentos.md](./pantallas/departamentos.md) |
 | Titulares | [titulares.md](./pantallas/titulares.md) |

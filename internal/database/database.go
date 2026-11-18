@@ -65,6 +65,16 @@ func migrateV21(db *gorm.DB) {
 	if !m.HasTable("persona") {
 		m.CreateTable(&models.Persona{})
 	}
+	// Tabla nueva: registro de accesos
+	if !m.HasTable("registro") {
+		if err := m.CreateTable(&models.Registro{}); err != nil {
+			db.Exec(`CREATE TABLE registro (
+				id BIGSERIAL PRIMARY KEY, email TEXT, nombre TEXT, unidad TEXT,
+				telefono TEXT, password TEXT, estado TEXT, rol TEXT,
+				id_persona BIGINT, ip TEXT, creado_en TIMESTAMPTZ)`)
+			db.Exec("CREATE INDEX IF NOT EXISTS idx_registro_email ON registro(email)")
+		}
+	}
 
 	// Columnas nuevas en departamento (fallback SQL si AddColumn falla)
 	if !m.HasColumn("departamento", "nombre") {
@@ -145,6 +155,11 @@ func migrateV21(db *gorm.DB) {
 	if !m.HasColumn("recibo", "saldo_favor") {
 		if err := m.AddColumn(&models.Recibo{}, "SaldoFavor"); err != nil {
 			db.Exec("ALTER TABLE recibo ADD COLUMN saldo_favor DOUBLE PRECISION DEFAULT 0")
+		}
+	}
+	if !m.HasColumn("users", "id_persona") {
+		if err := m.AddColumn(&models.User{}, "IDPersona"); err != nil {
+			db.Exec("ALTER TABLE users ADD COLUMN id_persona BIGINT")
 		}
 	}
 }

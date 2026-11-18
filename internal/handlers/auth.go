@@ -21,6 +21,9 @@ func (a *App) LoginPage(w http.ResponseWriter, r *http.Request) {
 		if r.FormValue("error") == "1" {
 			data.Err = "Email o contraseña incorrectos"
 		}
+		if r.FormValue("registro") == "1" {
+			data.Msg = "Cuenta creada. Iniciá sesión con tu email y contraseña."
+		}
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	tmpl.ExecuteTemplate(w, "layout.html", data)

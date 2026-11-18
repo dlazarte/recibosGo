@@ -61,11 +61,11 @@ func newTestEnv(t *testing.T) *testEnv {
 	if err := db.AutoMigrate(
 		&models.User{}, &models.Persona{}, &models.Departamento{},
 		&models.Servicio{}, &models.Recibo{}, &models.DetalleRecibo{},
-		&models.ConsumoLuz{},
+		&models.ConsumoLuz{}, &models.Registro{},
 	); err != nil {
 		t.Fatalf("automigrate: %v", err)
 	}
-	for _, table := range []string{"detallerecibo", "recibo", "consumo_luz", "departamento", "persona", "servicio", "users"} {
+	for _, table := range []string{"detallerecibo", "recibo", "consumo_luz", "departamento", "persona", "servicio", "registro", "users"} {
 		if err := db.Exec("TRUNCATE TABLE " + table + " RESTART IDENTITY CASCADE").Error; err != nil {
 			t.Fatalf("truncate %s: %v", table, err)
 		}

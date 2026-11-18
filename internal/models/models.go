@@ -7,10 +7,11 @@ import (
 )
 
 type User struct {
-	ID       uint   `gorm:"primaryKey"`
-	Email    string `gorm:"uniqueIndex;not null"`
-	Password string
-	Role     string // administrador, dueño, inquilino, receptor
+	ID        uint   `gorm:"primaryKey"`
+	Email     string `gorm:"uniqueIndex;not null"`
+	Password  string
+	Role      string // administrador, dueño, inquilino, receptor
+	IDPersona *uint  // persona vinculada (auto-registro)
 }
 
 func (User) TableName() string { return "users" }
@@ -43,6 +44,24 @@ type Persona struct {
 }
 
 func (Persona) TableName() string { return "persona" }
+
+// Registro guarda los intentos de auto-registro: aprobados automáticamente,
+// pendientes de aprobación del admin o aprobados manualmente.
+type Registro struct {
+	ID        uint   `gorm:"primaryKey"`
+	Email     string `gorm:"index"`
+	Nombre    string
+	Unidad    string
+	Telefono  string
+	Password  string
+	Estado    string // auto | pendiente | aprobado | rechazado
+	Rol       string
+	IDPersona *uint
+	IP        string
+	CreadoEn  time.Time
+}
+
+func (Registro) TableName() string { return "registro" }
 
 type Servicio struct {
 	ID             uint `gorm:"primaryKey"`

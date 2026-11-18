@@ -9,6 +9,7 @@
     </div>
 
     {{if .Err}}<p class="login-error">{{.Err}}</p>{{end}}
+    {{if .Msg}}<p class="msg-ok">{{.Msg}}</p>{{end}}
 
     <form method="post" action="/login">
       <label>Email
@@ -22,6 +23,9 @@
       </div>
       <button type="submit" class="btn">Ingresar</button>
     </form>
+    <div class="check-row">
+      <a href="/registro">¿No tenés cuenta? Registrate</a>
+    </div>
   </div>
 </div>
 {{end}}

@@ -69,8 +69,9 @@ departamento ─┘
 - `recibo`: `id`, `numero_recibo`, `fecha`, `periodo` (AAAA-MM de la deuda generada), `tipo` (expensas|servicios|extraordinarias|deuda_anterior), `id_departamento`, `id_persona` (nullable, titular al generar), `observaciones`, `total`, `total_con_interes`, `fecha_corte`, `fecha_pago`, `monto_pagado`, `pago_parcial`, `id_recibo_origen`, `saldo_favor`
 - `detallerecibo`: sin cambios
 - `consumo_luz`: `id`, `periodo`, `id_departamento`, `lectura_anterior`, `lectura_actual`, `consumo_kwh`, `precio_kw`, `monto_consumo`, `servicio_comun`, `total`
+- `registro`: `id`, `email`, `nombre`, `unidad`, `telefono`, `password` (hash), `estado` (auto|pendiente|aprobado|rechazado), `rol`, `id_persona`, `ip`, `creado_en`
 - `servicio`: sin cambios
-- `users`: sin cambios (solo auth)
+- `users`: `id`, `email`, `password` (bcrypt), `role`, `id_persona` (nullable, vincula con `persona` en el auto-registro)
 
 Detalle completo en docs/modelo-de-datos.md y docs/migraciones.md.
 
@@ -191,6 +192,8 @@ Ver Recibos			✅ Todos	✅ Solo suyos	✅ Solo suyos	✅ Todos
 Ver Deuda/Resumen	✅ Todo	✅ Su deuda		✅ Su deuda		✅ Todo
 Consultas/Reportes	✅		✅ (solo suyo)	❌				✅ 
 Gestionar Usuarios	✅		❌				❌				❌
+Aprobar registros	✅		❌				❌				❌
+Auto-registro (público)	—		✅ Link compartido	✅ Link compartido	—
 
 Pantallas por Rol:
 	Administrador:

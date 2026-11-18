@@ -12,6 +12,7 @@ Sistema web para administrar expensas y servicios de edificios de departamentos.
 - Expensas extraordinarias: división por coeficiente, imputadas al propietario
 - Pagos totales/parciales con saldo a favor y generación automática de deuda anterior
 - Cuenta corriente por persona: unidades, recibos, detalle e importes
+- Auto-registro con link compartido: match por unidad+nombre o teléfono, rol automático y aprobación de pendientes por el admin
 - Roles diferenciados: Administrador, Propietario, Inquilino, Operador
 - Dashboard con métricas clave
 - Modo oscuro/claro

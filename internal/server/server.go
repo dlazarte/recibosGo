@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"time"
 
 	"recibosgo/internal/handlers"
 	"recibosgo/internal/middleware"
@@ -23,6 +24,10 @@ func NewRouter(app *handlers.App, auth *middleware.AppCtx, root string) *chi.Mux
 	r.Get("/login", app.LoginPage)
 	r.Post("/login", app.Login)
 	r.Post("/logout", app.Logout)
+
+	registroLimit := middleware.NewRateLimiter(5, time.Hour)
+	r.Get("/registro", app.RegistroPage)
+	r.Post("/registro", registroLimit.Limit(app.RegistroCreate))
 
 	staticFS := http.FileServer(http.Dir(filepath.Join(root, "static")))
 	r.Get("/static/*", func(w http.ResponseWriter, r *http.Request) {
@@ -60,6 +65,7 @@ func NewRouter(app *handlers.App, auth *middleware.AppCtx, root string) *chi.Mux
 				r.Post("/{id}", app.PersonaUpdate)
 			})
 			r.Get("/reportes", app.Reportes)
+			r.Post("/registro/{id}/aprobar", app.RegistroAprobar)
 		})
 
 		r.Group(func(r chi.Router) {
@@ -109,7 +115,7 @@ func LoadTemplates(root string) (map[string]*template.Template, error) {
 		},
 	}
 	pages := []string{
-		"login", "dashboard", "departamentos", "departamento_historial", "servicios", "titulares", "persona_cuenta",
+		"login", "registro", "dashboard", "departamentos", "departamento_historial", "servicios", "titulares", "persona_cuenta",
 		"recibos_list", "recibo_create", "recibo_detail", "reportes", "deudas",
 	}
 	fragments := []string{

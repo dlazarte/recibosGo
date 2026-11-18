@@ -8,13 +8,13 @@ import (
 )
 
 type ReporteData struct {
-	Mes      string
-	Total    float64
-	Cobrado  float64
-	Pendiente float64
-	Recibos  []models.Recibo
+	Mes         string
+	Total       float64
+	Cobrado     float64
+	Pendiente   float64
+	Recibos     []models.Recibo
 	PorServicio map[string]float64
-	Paginado Pagination
+	Paginado    Pagination
 }
 
 func (a *App) Reportes(w http.ResponseWriter, r *http.Request) {

@@ -58,6 +58,44 @@
   </table>
   </div>
   {{end}}
+
+  {{if .IsAdmin}}
+  <h2>Registros de acceso {{if $d.RegistrosPend}}<span class="badge warn">{{$d.RegistrosPend}} pendientes</span>{{end}}</h2>
+  {{if $d.Registros}}
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Email</th><th>Nombre</th><th>Unidad</th><th>Estado</th><th>Fecha</th><th></th></tr>
+    </thead>
+    <tbody>
+    {{range $d.Registros}}
+      <tr>
+        <td>{{.Email}}</td>
+        <td>{{.Nombre}}</td>
+        <td>{{.Unidad}}</td>
+        <td>{{if eq .Estado "pendiente"}}<span class="badge warn">Pendiente</span>{{else}}<span class="badge ok">{{.Estado}}</span>{{end}}</td>
+        <td>{{.CreadoEn.Format "02/01/2006 15:04"}}</td>
+        <td>
+          {{if eq .Estado "pendiente"}}
+          <form method="post" action="/registro/{{.ID}}/aprobar" class="inline"
+                onsubmit="return confirm('¿Aprobar este registro?');">
+            <select name="rol">
+              <option value="dueno">Propietario</option>
+              <option value="inquilino">Inquilino</option>
+            </select>
+            <button type="submit" class="btn sm">Aprobar</button>
+          </form>
+          {{end}}
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{else}}
+  <p class="notice">Sin registros de acceso todavía.</p>
+  {{end}}
+  {{end}}
   {{else}}
     {{if $d.Departamentos}}
     <div class="cards">

@@ -50,9 +50,8 @@ func (a *App) RecibosList(w http.ResponseWriter, r *http.Request) {
 		base := a.DB.Model(&models.Recibo{})
 		if user.Role != "administrador" && user.Role != "receptor" {
 			// Find departments via persona (v2.1)
-			var persona models.Persona
+			persona, found := a.personaDelUsuario(user)
 			var ids []uint
-			found := a.DB.Where("email = ?", user.Email).First(&persona).Error == nil
 			if found {
 				var depts []models.Departamento
 				a.DB.Where("id_dueño = ? OR id_inquilino = ?", persona.ID, persona.ID).Find(&depts)
@@ -494,8 +493,8 @@ func (a *App) canAccessRecibo(user *models.User, recibo *models.Recibo) bool {
 	if user.Role == "administrador" || user.Role == "receptor" {
 		return true
 	}
-	var persona models.Persona
-	if a.DB.Where("email = ?", user.Email).First(&persona).Error != nil {
+	persona, ok := a.personaDelUsuario(user)
+	if !ok {
 		return false
 	}
 	d := recibo.Departamento

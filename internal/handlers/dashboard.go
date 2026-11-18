@@ -16,6 +16,8 @@ type DashboardData struct {
 	DeudaPendiente   float64
 	UnidadesConDeuda int64
 	DeudasAnteriores []models.Recibo
+	Registros        []models.Registro
+	RegistrosPend    int64
 }
 
 func (a *App) Dashboard(w http.ResponseWriter, r *http.Request) {
@@ -45,10 +47,12 @@ func (a *App) Dashboard(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		data.UnidadesConDeuda = int64(len(unidades))
+
+		a.DB.Order("creado_en DESC").Limit(10).Find(&data.Registros)
+		a.DB.Model(&models.Registro{}).Where("estado = 'pendiente'").Count(&data.RegistrosPend)
 	} else {
-		// Find departments via persona (v2.1)
-		var persona models.Persona
-		if a.DB.Where("email = ?", user.Email).First(&persona).Error == nil {
+		persona, ok := a.personaDelUsuario(user)
+		if ok {
 			var depts []models.Departamento
 			a.DB.Where("id_dueño = ? OR id_inquilino = ?", persona.ID, persona.ID).Find(&depts)
 			data.Departamentos = depts

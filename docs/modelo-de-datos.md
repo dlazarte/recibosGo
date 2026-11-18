@@ -11,6 +11,30 @@ erDiagram
     recibo ||--o{ detallerecibo : "id_recibo"
     servicio ||--o{ detallerecibo : "id_servicio"
     departamento ||--o{ consumo_luz : "id_departamento"
+    persona ||--o{ registro : "id_persona"
+    persona ||--o{ users : "id_persona"
+
+    users {
+        int id PK
+        string email
+        string password "bcrypt"
+        string role
+        int id_persona FK
+    }
+
+    registro {
+        int id PK
+        string email
+        string nombre
+        string unidad
+        string telefono
+        string password "hash bcrypt"
+        string estado "auto | pendiente | aprobado | rechazado"
+        string rol
+        int id_persona FK
+        string ip
+        datetime creado_en
+    }
 
     departamento {
         int id PK
@@ -120,7 +144,7 @@ erDiagram
 
 **`servicio`** — catálogo de servicios. Sin cambios.
 
-**`users`** — solo autenticación. Sin cambios.
+**`users`** — solo autenticación. `id_persona` vincula al titular cuando se da de alta por auto-registro; los usuarios anteriores se vinculan por `email`.
 
 ### Relaciones clave
 
