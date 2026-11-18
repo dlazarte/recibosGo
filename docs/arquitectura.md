@@ -18,10 +18,9 @@
 recibosgo/
 ├── cmd/server/main.go          # Punto de entrada: config, DB, templates, router
 ├── internal/
-│   ├── config/config.go        # Variables de entorno (incluye CSV_PATH)
+│   ├── config/config.go        # Variables de entorno
 │   ├── database/
-│   │   ├── database.go         # Conexión + AutoMigrate + migrateV21
-│   │   └── backfill.go         # BackfillV21 desde CSV (idempotente)
+│   │   └── database.go         # Conexión + AutoMigrate + migraciones aditivas
 │   ├── models/models.go        # Modelos GORM (User, Departamento, Persona, Servicio, Recibo, DetalleRecibo, Fecha)
 │   ├── handlers/               # Handlers HTTP por dominio
 │   │   ├── app.go              # App (DB, Templates), render/renderFrag, PageData
@@ -38,13 +37,12 @@ recibosgo/
 │   │   └── paginado.go         # Paginación (perPage = 25)
 │   ├── middleware/middleware.go # Autenticación, sesión, RequireRole
 │   ├── parser/
-│   │   ├── parser.go           # Parser de nombres + ParseCSV (nuevo v2.1)
+│   │   ├── parser.go           # Normalización de nombres (NormalizeName, ParseNombre)
 │   │   └── parser_test.go      # Tests del parser
 │   └── pdf/recibo.go           # Generación de PDF de recibo
 ├── templates/                  # Páginas + fragments/ (HTMX)
 ├── static/                     # style.css, htmx.min.js, imágenes
-├── recibos2026.sql             # Dump legacy (fuente de migración)
-├── dptos_dueños_inquilinos.csv # CSV limpio para backfill
+└── data/                       # Artefactos históricos (CSV/Excel de respaldo, no se leen en runtime)
 ```
 
 ## Flujo de una request
@@ -73,9 +71,8 @@ recibosgo/
 | `SESSION_SECRET` | `dev-secret-...` | Firma HMAC de la cookie |
 | `ADMIN_EMAIL` | `admin@recibosgo.local` | Seed del admin |
 | `ADMIN_PASSWORD` | `admin123` | Seed del admin |
-| `CSV_PATH` | `dptos_dueños_inquilinos.csv` | CSV para backfill v2.1 |
 
-> `DATABASE_URL` debe ser un DSN de PostgreSQL; la app no usa SQLite.
+> `DATABASE_URL` debe ser un DSN de PostgreSQL. **PostgreSQL es la única fuente de verdad**: la app no lee SQLite ni CSV al arrancar. Los `*.db` y `*.csv` del repo son artefactos históricos; las planillas Excel solo sirven para validar la transición.
 
 ### Sesión y roles
 
@@ -100,7 +97,7 @@ El login sigue usando `users.email` para autenticación. Para encontrar los depa
 - ✅ PostgreSQL: usar GORM Migrator / AutoMigrate, sin dialectos específicos.
 - ✅ Contraseñas con bcrypt.
 - ✅ Importar drivers de DB solo en `internal/database`.
-- ❌ NO renombrar tablas/columnas del esquema de `mp135.db` (respetar nombres 1:1).
+- ❌ NO renombrar ni borrar columnas del esquema heredado (respetar nombres 1:1).
 - ✅ Modelos GORM con tags, handlers Chi, templates parseados una vez, middleware en `internal/middleware`, config por env.
 - ✅ HTMX en vez de JS pesado; sin animaciones de menú.
 - ✅ Modo oscuro/claro con Tailwind (CSS en `static/style.css`).

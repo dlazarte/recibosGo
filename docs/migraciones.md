@@ -1,19 +1,21 @@
-# Migración — de legacy (recibos2026.sql) a v2.1
+# Migración — de legacy a v2.1 (registro histórico)
 
-## Contexto
+> ⚠️ **Este documento es un registro histórico de la migración ya realizada.** La fuente de verdad actual es **PostgreSQL** (`recibosgo-db` local / contenedor `postgres` en la RPi). Ni `recibos2026.sql`, ni `mp135.db` / `recibos.db`, ni los CSV se usan hoy para migrar o corregir datos: son artefactos de la transición. Ver `AGENTS.md → Fuente de verdad de los datos`.
 
-- La fuente de producción es el dump legacy **`recibos2026.sql`** (tablas `categorias`, `clientes`, `detallefactura`, `facturas`).
-- La base real en producción es `mp135.db` / `recibos.db`, que ya contiene las tablas del sistema actual (`departamento`, `servicio`, `recibo`, `detallerecibo`, `users`) creadas por AutoMigrate + importación manual.
-- La v2.1 es **aditiva**: no se renombra ni elimina ninguna columna/tabla existente (regla 1:1 de AGENTS.md).
+## Contexto (histórico)
+
+- El dump legacy **`recibos2026.sql`** (tablas `categorias`, `clientes`, `detallefactura`, `facturas`) fue el origen de la importación inicial.
+- En esa etapa la base era SQLite (`mp135.db` / `recibos.db`); hoy la base es PostgreSQL y los `*.db` son snapshots viejos.
+- La v2.1 fue **aditiva**: no se renombró ni eliminó ninguna columna/tabla existente (regla 1:1 de AGENTS.md).
 
 ## Regla de oro
 
-> Migrar SIEMPRE sobre una copia de la base, nunca sobre producción. Backfill idempotente: ejecutable N veces sin duplicar datos.
+> Migrar SIEMPRE sobre una copia de la base, nunca sobre producción. Migraciones idempotentes: ejecutables N veces sin duplicar datos.
 
-## Paso 0 — Preparación
+## Paso 0 — Preparación (histórico)
 
-1. Copiar `recibos.db` → `recibos_mig_test.db`.
-2. Levantar la app apuntando a la copia (`DATABASE_URL=recibos_mig_test.db`) y verificar que arranca.
+1. Copiar la base de trabajo antes de migrar.
+2. Levantar la app apuntando a la copia (`DATABASE_URL=…`) y verificar que arranca.
 3. Exportar un snapshot de `departamento`, `recibo`, `detallerecibo` para comparar después (conteos y totales).
 
 ## Paso 1 — Estructura (aditiva, vía GORM Migrator)
@@ -61,7 +63,7 @@ Parsear la unidad desde `departamento.propietario` (texto combinado actual). Ord
    - Normalizar para deduplicar (trim, mayúsculas, quitar signos): `SS2C` duplicado en ids 81/85, `SS2A` en 79/84 deben resolver a la MISMA persona.
 2. Crear `persona` con `tipo = 'propietario'` (si el nombre normalizado no existe aún).
 3. Crear vínculo en `departamento_persona` con `rol = 'propietario'`, `activo = 1`, `fecha_desde = fecha de creación` (o `NULL`).
-4. **Inquilinos:** no hay dato legacy; quedan para carga manual (o CSV).
+4. **Inquilinos:** no había dato legacy; se cargaron manualmente en la base PostgreSQL.
 
 ## Paso 4 — Backfill de `recibo.id_persona` (titular por recibo)
 

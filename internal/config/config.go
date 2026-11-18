@@ -10,7 +10,6 @@ type Config struct {
 	SessionSecret string
 	AdminEmail    string
 	AdminPassword string
-	CSVPath       string
 }
 
 func Load() Config {
@@ -20,7 +19,6 @@ func Load() Config {
 		SessionSecret: getEnv("SESSION_SECRET", "dev-secret-cambiar-en-produccion"),
 		AdminEmail:    getEnv("ADMIN_EMAIL", "admin@recibosgo.local"),
 		AdminPassword: getEnv("ADMIN_PASSWORD", "admin123"),
-		CSVPath:       getEnv("CSV_PATH", "dptos_dueños_inquilinos.csv"),
 	}
 }
 

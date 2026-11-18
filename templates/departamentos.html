@@ -48,6 +48,14 @@
             {{end}}
           </select>
         </label>
+        <label>Inquilino
+          <select name="id_inquilino">
+            <option value="">-- sin inquilino --</option>
+            {{range $d.Inquilinos}}
+            <option value="{{.ID}}" {{if eq $d.EditInquilinoID .ID}}selected{{end}}>{{.Nombre}}</option>
+            {{end}}
+          </select>
+        </label>
         <label class="check">
           <input type="checkbox" name="activo" {{if not $d.Edit}}checked{{else if $d.Edit.Activo}}checked{{end}}>
           Activo

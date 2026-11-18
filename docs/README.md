@@ -16,7 +16,7 @@ Estos documentos sirven a dos audiencias:
 | [arquitectura.md](./arquitectura.md) | Stack, capas, flujo de una request, reglas de diseño |
 | [modelo-de-datos.md](./modelo-de-datos.md) | ERD actual y objetivo (v2.1), diccionario de tablas |
 | [mapa-de-pantallas.md](./mapa-de-pantallas.md) | Diagrama de navegación y tabla de rutas |
-| [migraciones.md](./migraciones.md) | Estrategia de migración desde `recibos2026.sql` |
+| [migraciones.md](./migraciones.md) | Registro histórico de la migración legacy → v2.1 |
 | [pantallas/_plantilla.md](./pantallas/_plantilla.md) | Plantilla estándar de especificación de pantalla |
 | [pantallas/login.md](./pantallas/login.md) | Login |
 | [pantallas/dashboard.md](./pantallas/dashboard.md) | Dashboard |
@@ -40,4 +40,9 @@ Estos documentos sirven a dos audiencias:
 ## Estado del proyecto
 
 - **v2.1 (implementado)**: unidad con `nombre`, `persona` + FKs directas, `coeficiente` por unidad, `recibo.periodo`, generación multi-unidad y deuda mensual.
-- **v2.2 (en curso)**: PostgreSQL como única base, adaptación de las planillas (`ExpensasMP2026.xlsx`, `LuzMP2026.xlsx`) al modelo, generación de servicios EDET y pantallas/procesos restantes.
+- **v2.2 (en curso)**: PostgreSQL como única fuente de verdad, generación de expensas/servicios/extraordinarias, pagos parciales, cuenta por persona y auto-registro.
+- Los `*.db` de SQLite y los `*.csv` del repo son artefactos históricos; las planillas Excel solo se usan para validar la transición.
+
+## Fuente de verdad
+
+**PostgreSQL** (`recibosgo-db` local, contenedor `postgres` en la RPi, base `recibosgo`). Todo cambio de datos se hace ahí. La app no lee SQLite ni CSV al arrancar; ver `AGENTS.md`.

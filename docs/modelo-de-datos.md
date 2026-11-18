@@ -104,15 +104,18 @@ erDiagram
     }
 ```
 
-### Datos actuales (mp135.db)
+### Datos actuales (PostgreSQL `recibosgo`)
 
 | Tabla | Filas | Observaciones |
 |---|---|---|
-| `departamento` | 104 | 104 unidades registradas |
-| `persona` | ~88 | Creadas desde CSV (propietarios + inquilinos) |
-| `recibo` | 5.690 | 239 con `id_departamento = 0` (huérfanos) |
-| `detallerecibo` | 7.860 | |
+| `departamento` | 118 | Unidades activas |
+| `persona` | 114 | Propietarios + inquilinos |
+| `servicio` | 4 | Expensas Comunes, Servicios, Expensas Extraordinarias, Deudas Anteriores |
+| `recibo` | 5.918 | Incluye recibos legacy |
+| `detallerecibo` | 8.200 | |
 | `users` | 1+ | Solo auth (admin seed) |
+
+> Los conteos son de la base PostgreSQL local (`recibosgo-db`), la única fuente de verdad. Los `*.db` de SQLite y los `*.csv` son artefactos históricos.
 
 ### Diccionario de tablas
 

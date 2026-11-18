@@ -21,6 +21,7 @@ func main() {
 	var deptos []models.Departamento
 	db.Preload("Dueño").Preload("Inquilino").Order("nombre ASC").Find(&deptos)
 
+	// Export derivado de PostgreSQL para verificación; no es fuente de verdad.
 	f, err := os.Create("verificacion_deptos.csv")
 	if err != nil {
 		log.Fatal(err)

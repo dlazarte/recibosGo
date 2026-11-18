@@ -40,7 +40,7 @@ NO hacer:
 	❌ Usar MySQL/Oracle/otro dialecto → solo PostgreSQL
 	❌ Guardar contraseñas en texto plano → siempre bcrypt
 	❌ Importar drivers de DB en capas de negocio → solo en internal/database
-	❌ Renombrar tablas/columnas del esquema de mp135.db → respetar nombres 1:1
+	❌ Renombrar ni borrar columnas del esquema heredado → respetar nombres 1:1
 	❌ JavaScript pesado → priorizar HTMX
 	❌ Animaciones en menú móvil → mantener simple
 
@@ -49,9 +49,8 @@ SÍ hacer:
 	✅ Handlers Chi con r.Get, r.Post, r.Put, r.Delete
 	✅ Templates html/template parseados una sola vez al iniciar la app
 	✅ Middleware de autenticación y roles en internal/middleware
-	✅ Configuración vía variables de entorno (DATABASE_URL, PORT, CSV_PATH)
-	✅ AutoMigrate + migrateV21 para crear tablas/columnas faltantes al iniciar
-	✅ BackfillV21 desde CSV (idempotente, safe to run N times)
+	✅ Configuración vía variables de entorno (DATABASE_URL, PORT, SESSION_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD)
+	✅ AutoMigrate + migrateV21/migrateServicios/migrateIndexes para crear tablas/columnas faltantes al iniciar
 	✅ Diseño responsive con TailwindCSS
 	✅ Modo oscuro/claro con clases de Tailwind
 	✅ Menú hamburguesa sin animación en móvil
@@ -75,13 +74,22 @@ departamento ─┘
 
 Detalle completo en docs/modelo-de-datos.md y docs/migraciones.md.
 
+## 🗄️ Fuente de verdad de los datos
+
+**PostgreSQL es la única fuente de verdad** del sistema: `recibosgo-db` (local) y el contenedor `postgres` en la RPi, base `recibosgo`. Todo alta/corrección de datos se hace en esa base.
+
+- Los `*.db` de SQLite (`recibos.db`, `mp135.db`) y los `*.csv` del repo son **artefactos históricos**: no se leen al arrancar, no se usan para migrar ni para corregir datos. No sincronizar desde ellos.
+- `recibos2026.sql` y `recibosgo-linux-x86.zip` son dumps/binarios viejos (no usar).
+- Las planillas Excel (`ExpensasMP2026.xlsx`, `LuzMP2026.xlsx`) son solo **referencia de validación** durante la transición, no fuente operativa: se conservan para auditoría hasta el blanqueo final.
+- La app arranca con `AutoMigrate` + migraciones aditivas idempotentes; no hay backfill desde CSV.
+
 ## 🔁 Migración de planillas a la base de datos
 
-Mientras la app no esté validada, las planillas (`ExpensasMP2026.xlsx`, pestaña mensual más reciente) son la fuente de verdad. Directivas obligatorias:
+Directivas obligatorias:
 
 - **Mapear antes de migrar**: documentar pestaña/columna de origen y destino (`departamento`, `persona`, `recibo`, `detallerecibo`). No migrar por posición de fila; usar claves naturales estables (unidad, período, nombre).
-- **Migraciones idempotentes**: cada script debe correr N veces sin duplicar datos. Buscar por clave natural antes de insertar. Referencia: `BackfillV21` y `migrateV21`.
-- **No romper el esquema legacy**: no renombrar ni borrar columnas de `mp135.db` (regla 1:1). Todo cambio es aditivo.
+- **Migraciones idempotentes**: cada script debe correr N veces sin duplicar datos. Buscar por clave natural antes de insertar. Referencia: `migrateV21`, `migrateServicios`, `migrateIndexes`.
+- **No romper el esquema heredado**: no renombrar ni borrar columnas (regla 1:1). Todo cambio es aditivo.
 - **Validar contra la planilla**: comparar totales por período/unidad (expensas, SAT/CISI, total) antes de dar una migración por buena. Registrar diferencias.
 - **Coeficientes**: cargar `departamento.coeficiente` desde la columna de porcentaje de la planilla. Cálculo: `monto = total * coeficiente / 100`.
 - **Blanqueo final**: solo cuando la app se compruebe fiable. Antes: backup de la base, migrar sobre una base vacía, validar totales y recién entonces promover.

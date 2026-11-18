@@ -1,76 +1,13 @@
 package parser
 
 import (
-	"encoding/csv"
-	"fmt"
-	"os"
 	"strings"
 	"unicode"
 )
 
-// DeptoCSV represents one row from dptos_dueños_inquilinos.csv
-type DeptoCSV struct {
-	Unidad     string
-	Propietario string
-	Inquilino  string
-	TelefonoProp string
-	TelefonoInq  string
-}
-
-// ParseCSV reads the CSV file and returns cleaned department data.
-func ParseCSV(path string) ([]DeptoCSV, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("abriendo CSV: %w", err)
-	}
-	defer f.Close()
-
-	reader := csv.NewReader(f)
-	records, err := reader.ReadAll()
-	if err != nil {
-		return nil, fmt.Errorf("leyendo CSV: %w", err)
-	}
-
-	var result []DeptoCSV
-	for i, row := range records {
-		if i == 0 { // skip header
-			continue
-		}
-		if len(row) < 2 {
-			continue
-		}
-		depto := strings.TrimSpace(row[0])
-		propietario := strings.TrimSpace(row[1])
-		inquilino := ""
-		if len(row) > 2 {
-			inquilino = strings.TrimSpace(row[2])
-		}
-		telProp := ""
-		if len(row) > 3 {
-			telProp = strings.TrimSpace(row[3])
-		}
-		telInq := ""
-		if len(row) > 4 {
-			telInq = strings.TrimSpace(row[4])
-		}
-
-		if depto == "" || propietario == "" {
-			continue
-		}
-
-		result = append(result, DeptoCSV{
-			Unidad:      depto,
-			Propietario: propietario,
-			Inquilino:   inquilino,
-			TelefonoProp: telProp,
-			TelefonoInq:  telInq,
-		})
-	}
-	return result, nil
-}
-
-// ParseNombre splits "departamento.propietario" legacy text into (unidad, nombre).
-// Order of rules from migraciones.md:
+// ParseNombre splits legacy "departamento.propietario" text into (unidad, nombre).
+// Se conserva como utilidad histórica; ya no se usa para migrar datos.
+// Reglas:
 //  1. Sufijo *XX* → unidad
 //  2. Prefijo \d{1,2}[A-Ha-h] → unidad
 //  3. Prefijo SS → unidad

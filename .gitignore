@@ -3,6 +3,7 @@
 *.db-*
 *.sqlite
 *.sqlite3
+*.csv
 *.xlsx
 *.zip
 recibos/

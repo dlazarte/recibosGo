@@ -18,7 +18,7 @@ Guía para trabajar **desde este proyecto** (`/home/daniel/Proyectos/recibosGo`)
 | Base en la RPi | contenedor Docker `postgres`, base `recibosgo`, usuario `recibosgo` |
 | Base local de referencia | contenedor Docker `recibosgo-db`, base `recibosgo`, `127.0.0.1:5432` |
 
-> La fuente de datos es el **Postgres local** (`recibosgo-db`), no los archivos `*.db` de SQLite del repo: esos son snapshots viejos.
+> **PostgreSQL es la única fuente de verdad**: contenedor `recibosgo-db` en local y `postgres` en la RPi. Los `*.db` de SQLite y los `*.csv` del repo son artefactos históricos: la app no los lee al arrancar y no se sincronizan.
 
 Última sincronización: **2026-11-18** → `persona 114`, `departamento 118`, `servicio 4`, `recibo 5918`, `detallerecibo 8200`.
 
@@ -53,7 +53,7 @@ Reemplazar `STATUS` por `restart`, `stop`, `start` o `status`.
 
 ## 1. Actualizar solo el código (sin tocar la base)
 
-Se compila a ARM64 acá y se suben binario + templates + estáticos + CSV. El `recibosgo.env` remoto **no se toca**.
+Se compila a ARM64 acá y se suben binario + templates + estáticos. El `recibosgo.env` remoto **no se toca**. No se suben `data/`, CSV ni SQLite: no son fuente de verdad.
 
 ```bash
 set -e
@@ -64,8 +64,7 @@ STAGE=$(mktemp -d /tmp/recibosgo-stage.XXXXXX)
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
   go build -trimpath -o "$STAGE/recibos-arm64" ./cmd/server
 
-cp -a templates static data "$STAGE/"
-cp dptos_dueños_inquilinos.csv verificacion_deptos.csv "$STAGE/"
+cp -a templates static "$STAGE/"
 
 rsync -avz --delete \
   --exclude='recibosgo.env' \
@@ -78,7 +77,7 @@ rm -rf "$STAGE"
 ssh daniel@rpiq1 'export XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus; systemctl --user restart recibosgo.service'
 ```
 
-Al arrancar, la app ejecuta `AutoMigrate` + `BackfillV21`, que son idempotentes.
+Al arrancar, la app ejecuta `AutoMigrate` + migraciones aditivas (`migrateV21`, `migrateServicios`, `migrateIndexes`), todas idempotentes. No hay backfill desde CSV.
 
 Verificación rápida:
 
@@ -187,7 +186,7 @@ ssh daniel@rpiq1 'export XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS
 Ver configuración remota **sin mostrar secretos**:
 
 ```bash
-ssh daniel@rpiq1 'grep -E "^(PORT|DATABASE_URL|CSV_PATH|ADMIN_EMAIL)=" /home/daniel/recibosGo/recibosgo.env'
+ssh daniel@rpiq1 'grep -E "^(PORT|DATABASE_URL|ADMIN_EMAIL)=" /home/daniel/recibosGo/recibosgo.env'
 ```
 
 Cambiar la password del admin:
@@ -206,7 +205,7 @@ ssh daniel@rpiq1 'export XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS
 ## 5. Trampas conocidas
 
 - **No usar** `recibosgo-linux-x86.zip`: es amd64 y SQLite viejo, no sirve para la RPi.
-- **No sincronizar desde** `recibos.db`, `mp135.db` ni otros `*.db`: son snapshots. La fuente real es el contenedor local `recibosgo-db`.
+- **No sincronizar desde** `recibos.db`, `mp135.db`, otros `*.db` ni `*.csv`: son artefactos históricos. La fuente real es PostgreSQL (`recibosgo-db` / `postgres`).
 - Los recibos con `id_departamento = 0` aparecen sin unidad/propietario; vienen así del sistema legacy (eran 239). No es un error nuevo.
-- El backfill intenta enlazar dueños/inquilinos desde `dptos_dueños_inquilinos.csv` al iniciar; es idempotente y no duplica datos.
+- La app **no ejecuta backfill desde CSV** al iniciar; los vínculos dueño/inquilino se corrigen directamente en PostgreSQL.
 - Si `curl http://rpiq1:8082/` falla desde esta máquina pero funciona dentro de la RPi, revisar Tailscale/firewall antes de tocar la app.

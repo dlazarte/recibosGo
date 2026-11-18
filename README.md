@@ -87,9 +87,8 @@ export ADMIN_PASSWORD="admin123"
 | `SESSION_SECRET` | no | `dev-secret-cambiar-en-produccion` | Firma HMAC de la cookie de sesión |
 | `ADMIN_EMAIL` | no | `admin@recibosgo.local` | Email del usuario administrador inicial |
 | `ADMIN_PASSWORD` | no | `admin123` | Contraseña del administrador inicial |
-| `CSV_PATH` | no | `dptos_dueños_inquilinos.csv` | CSV usado por el backfill v2.1 |
 
-> `DATABASE_URL` debe ser una URL de PostgreSQL. La aplicación crea y actualiza el esquema automáticamente al iniciar (AutoMigrate + migración aditiva v2.1); no hay paso manual de migración.
+> `DATABASE_URL` debe ser una URL de PostgreSQL. **PostgreSQL es la única fuente de verdad**; los `*.db` de SQLite y los `*.csv` del repo son artefactos históricos que la app no lee al arrancar. La aplicación crea y actualiza el esquema automáticamente al iniciar (AutoMigrate + migraciones aditivas); no hay paso manual de migración ni backfill desde CSV.
 
 ### 4. Ejecutar
 

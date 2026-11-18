@@ -52,8 +52,6 @@ func Connect(cfg config.Config) (*gorm.DB, error) {
 	migrateV21(db)
 	migrateServicios(db)
 	migrateIndexes(db)
-	BackfillV21(db, cfg.CSVPath)
-
 	seedAdmin(db, cfg)
 	return db, nil
 }
@@ -211,11 +209,11 @@ func migrateServicios(db *gorm.DB) {
 	}
 	for _, p := range pairs {
 		var old models.Servicio
-		if db.Where("nombre = ?", p[0]).First(&old).Error != nil {
+		if db.Where("nombre = ?", p[0]).Limit(1).Find(&old).RowsAffected == 0 {
 			continue
 		}
 		var target models.Servicio
-		if db.Where("nombre = ?", p[1]).First(&target).Error == nil {
+		if db.Where("nombre = ?", p[1]).Limit(1).Find(&target).RowsAffected > 0 {
 			db.Model(&models.DetalleRecibo{}).Where("id_servicio = ?", old.ID).Update("id_servicio", target.ID)
 			db.Delete(&old)
 		} else {

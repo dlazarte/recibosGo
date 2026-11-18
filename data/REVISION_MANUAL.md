@@ -1,5 +1,7 @@
 # Revision manual - importacion personas v2.1
 
+> ⚠️ **Registro histórico**: este cruce se hizo sobre el CSV durante la migración inicial. Hoy la fuente de verdad es PostgreSQL (`recibosgo-db`); ni este CSV ni los `*.db` se usan para corregir datos.
+
 Pendientes detectados en dptos_dueños_inquilinos.csv y su cruce con `departamento`.
 
 ## Unidades nuevas (crear en `departamento` antes de vincular)

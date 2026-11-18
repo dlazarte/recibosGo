@@ -127,3 +127,37 @@ Verificado en `/recibos`, `/dashboard`, `/deudas`, `/personas`, `/departamentos`
 ## 8. Limpieza
 
 Usuarios `nav.*@test.local` eliminados; `users` volvió a 1 (admin), `registro` a 0 filas. `departamento.coeficiente`, `servicio.nombre`, `persona.nombre` y `recibo 5703` verificados sin cambios. Scripts de prueba en `/tmp/opencode/nav_check*.sh`.
+
+---
+
+## 9. Apéndice — re-verificación tras el fix 8A (2026-11-18)
+
+Se corrigió el inquilino de 8A (`FATIMA BLANCO` → `LILIANA`, dato del Excel vigente) y se agregó la columna **Inquilino** + el selector `id_inquilino` en el formulario de Departamentos. Plantillas tocadas: `departamentos.html`, `fragments/deptos_table.html`.
+
+| Enlace / Botón | Plantilla | Ruta Chi | Método | Resultado | Estado |
+|---|---|---|---|---|---|
+| Listado Departamentos | `deptos_table.html` | `GET /departamentos/` | GET | 200 | OK |
+| Búsqueda `?q=8A` | `departamentos.html` | `GET /departamentos/` | GET | 200 | OK |
+| Editar | `deptos_table.html` | `GET /departamentos/?edit={id}` | GET | 200 | OK |
+| Historial | `deptos_table.html` | `GET /departamentos/{id}/historial` | GET | 200 | OK |
+| Paginador | `paginador.html` | `GET /departamentos/?page=N` | GET | 200 | OK |
+| **Cancelar** (edición) | `departamentos.html` | `GET /departamentos` | GET | 200 | OK |
+| **Volver** (historial) | `departamento_historial.html` | `GET /departamentos` | GET | 200 | OK |
+| Buscar / fragmento (`hx-get`) | `departamentos.html` | `GET /departamentos/` | GET | 200 · fragmento `deptos_table`, target `#deptos-table` OK | OK |
+| Crear / Guardar (form) | `departamentos.html` | `POST /departamentos/` · `/{id}` | POST | 302 → `?msg=…` (cubierto por tests) | OK |
+
+**9 OK, 0 FALLA** (local). Repetido en la RPi: `LOGIN_HTTP=302`, `/departamentos?q=8A` muestra `VERONICA ANGELILLI` + `LILIANA`, columna `Inquilino` presente y `<option value="64" selected>LILIANA` en el formulario de edición.
+
+Nuevos tests: `TestDepartamentoMuestraInquilino`, `TestDepartamentoFormularioInquilinoSeleccionado`, `TestDepartamentoUpdateConservaInquilino`, `TestDepartamentoUpdateLimpiaInquilino`, `TestDepartamentoCreateConInquilino`. `go test ./...` OK.
+
+---
+
+## 10. Apéndice — CSV/SQLite eliminados como fuente de verdad (2026-11-18)
+
+Se quitó `CSV_PATH` de la configuración, se eliminó `BackfillV21` del arranque y el parser de CSV. Se des-versionaron los `*.csv` (`git rm --cached`, siguen en disco) y se añadió `*.csv` a `.gitignore`. PostgreSQL quedó declarado como única fuente de verdad en `AGENTS.md`, `README.md`, `docs/`, `rpiq1.md` y `data/REVISION_MANUAL.md`. El despliegue ya no sincroniza `data/` ni CSV.
+
+**Re-verificación de navegación tras este cambio** (sin tocar plantillas, pero regla obligatoria): `nav_check.sh` → **70 OK / 0 FALLA**, `nav_deptos.sh` → **9 OK / 0 FALLA**. Log de arranque limpio (sin `record not found` ni mensajes de CSV). `go test ./...` OK.
+
+**No probado / pendiente**: el despliegue a la RPi no pudo ejecutarse porque `ssh daniel@rpiq1` y `daniel@100.100.199.53` dieron `Connection timed out` (Tailscale/host caído). La RPi sigue con el binario anterior que aún incluía el backfill por CSV; al recuperar conectividad hay que correr la sección 1 de `rpiq1.md` (ya actualizada: no sube CSV). Hasta entonces, la declaración de fuente de verdad aplica al repo y a la base local/PostgreSQL; el dato 8A=LILIANA ya está corregido en la RPi desde el turno anterior vía SQL directo.
+
+

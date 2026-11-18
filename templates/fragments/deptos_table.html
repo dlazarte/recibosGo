@@ -8,6 +8,7 @@
       <tr>
         <th>Unidad</th>
         <th>Propietario</th>
+        <th>Inquilino</th>
         <th>Coef. %</th>
         <th>Estado</th>
         <th></th>
@@ -18,6 +19,7 @@
       <tr>
         <td>{{.Nombre}}</td>
         <td>{{if .Dueño}}{{.Dueño.Nombre}}{{else}}<em style="color:var(--c-text-muted)">sin asignar</em>{{end}}</td>
+        <td>{{if .Inquilino}}{{.Inquilino.Nombre}}{{else}}<em style="color:var(--c-text-muted)">—</em>{{end}}</td>
         <td>{{printf "%.4f" .Coeficiente}}</td>
         <td>{{if .Activo}}<span class="badge ok">Activo</span>{{else}}<span class="badge warn">Inactivo</span>{{end}}</td>
         <td><a href="/departamentos?edit={{.ID}}" class="btn ghost sm">Editar</a> <a href="/departamentos/{{.ID}}/historial" class="btn ghost sm">Historial</a></td>

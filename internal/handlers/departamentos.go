@@ -22,13 +22,15 @@ type HistorialData struct {
 }
 
 type DeptData struct {
-	Departamentos []models.Departamento
-	Personas      []models.Persona
-	Search        string
-	Edit          *models.Departamento
-	Msg           string
-	Err           string
-	Paginado      Pagination
+	Departamentos   []models.Departamento
+	Personas        []models.Persona
+	Inquilinos      []models.Persona
+	Search          string
+	Edit            *models.Departamento
+	EditInquilinoID uint
+	Msg             string
+	Err             string
+	Paginado        Pagination
 }
 
 func (a *App) DepartamentosList(w http.ResponseWriter, r *http.Request) {
@@ -44,22 +46,28 @@ func (a *App) DepartamentosList(w http.ResponseWriter, r *http.Request) {
 	q.Count(&total)
 
 	var depts []models.Departamento
-	q.Preload("Dueño").
+	q.Preload("Dueño").Preload("Inquilino").
 		Order(ordenUnidades).
 		Offset((paginaActual(r) - 1) * perPage).
 		Limit(perPage).
 		Find(&depts)
 	data.Departamentos = depts
 
-	// Load personas for the dueño select
+	// Load personas for the dueño / inquilino selects
 	var personas []models.Persona
 	a.DB.Where("tipo = ? AND activo = true", "propietario").Order("nombre ASC").Find(&personas)
 	data.Personas = personas
+	var inquilinos []models.Persona
+	a.DB.Where("tipo = ? AND activo = true", "inquilino").Order("nombre ASC").Find(&inquilinos)
+	data.Inquilinos = inquilinos
 
 	if editID, err := strconv.Atoi(r.URL.Query().Get("edit")); err == nil {
 		var d models.Departamento
-		if a.DB.Preload("Dueño").First(&d, editID).Error == nil {
+		if a.DB.Preload("Dueño").Preload("Inquilino").First(&d, editID).Error == nil {
 			data.Edit = &d
+			if d.IDInquilino != nil {
+				data.EditInquilinoID = *d.IDInquilino
+			}
 		}
 	}
 	data.Msg = r.URL.Query().Get("msg")
@@ -70,6 +78,19 @@ func (a *App) DepartamentosList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.render(w, r, "departamentos", PageData{Data: data})
+}
+
+// parsePersonaID convierte el valor de un select en *uint (nil = sin selección).
+func parsePersonaID(v string) *uint {
+	if v == "" {
+		return nil
+	}
+	id, err := strconv.ParseUint(v, 10, 32)
+	if err != nil || id == 0 {
+		return nil
+	}
+	u := uint(id)
+	return &u
 }
 
 func (a *App) DepartamentoCreate(w http.ResponseWriter, r *http.Request) {
@@ -102,6 +123,7 @@ func (a *App) DepartamentoCreate(w http.ResponseWriter, r *http.Request) {
 	if idDueño != nil {
 		d.IDDueño = *idDueño
 	}
+	d.IDInquilino = parsePersonaID(r.FormValue("id_inquilino"))
 	if d.Propietario == "" {
 		d.Propietario = nombre
 	}
@@ -140,6 +162,7 @@ func (a *App) DepartamentoUpdate(w http.ResponseWriter, r *http.Request) {
 			d.IDDueño = uint(id)
 		}
 	}
+	d.IDInquilino = parsePersonaID(r.FormValue("id_inquilino"))
 	if err := a.DB.Save(&d).Error; err != nil {
 		http.Redirect(w, r, "/departamentos?msg="+urlEscape("Error al actualizar: "+err.Error()), http.StatusFound)
 		return

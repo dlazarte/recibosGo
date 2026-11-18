@@ -29,6 +29,10 @@
 | `propietario` | text | no | **legacy**: texto combinado |
 | `telefono` | text | no | |
 | `email` | email | no | |
+| `nombre` | text | sí | unidad legible (1A, SS2A, PB C) |
+| `coeficiente` | number | sí | % de prorrateo de expensas |
+| `id_dueño` | select | no | FK → `persona` (tipo propietario) |
+| `id_inquilino` | select | no | FK → `persona` (tipo inquilino); vacío = sin inquilino |
 | `activo` | checkbox | no | default checked |
 
 ## 4. Acciones y navegación
@@ -52,10 +56,7 @@ flowchart LR
 
 ## 6. Estado actual vs objetivo
 
-- **Actual:** la columna "Nº" muestra `numero` (código legacy 1..104); no existe unidad legible.
-- **Objetivo (v2.1):**
-  - Nuevo campo `nombre` = unidad (`1A`, `SS2A`, `PB C`), mostrado como "Unidad".
-  - `numero`, `propietario`, `piso`, `telefono`, `email` pasan a legacy (se conservan, se ocultan del form o se marcan).
-  - Búsqueda y orden por `nombre`.
-  - Acción "Asignar titulares" por fila → `/departamentos/{id}/titulares`.
+- **Actual (v2.2):** unidad legible `nombre`, búsqueda/orden por `nombre`, `coeficiente`, y selectores de dueño e **inquilino**. El listado muestra columnas Unidad, Propietario, **Inquilino**, Coef. %, Estado y acciones Editar/Historial. `numero`, `piso`, `propietario`, `telefono`, `email` se conservan como legacy.
+- Los vínculos dueño/inquilino se corrigen directamente en PostgreSQL (única fuente de verdad); no hay backfill desde CSV al reiniciar.
+- **Objetivo:** acción "Asignar titulares" por fila → `/departamentos/{id}/titulares`.
   - Cargar `propietario` de la unidad desde `persona` (vía `departamento_persona`).
